@@ -1,0 +1,26 @@
+.dock { position: absolute; bottom: 30px; left: 30px; width: 333px; display: flex; align-items: center; justify-content: space-between; }
+.addTask, .pause { position: relative; height: 62px; padding: 0; color: #b9c3bd; background: linear-gradient(145deg, rgb(31 43 36 / 74%), rgb(10 15 12 / 82%)); border: 1px solid rgb(229 255 237 / 13%); box-shadow: inset 0 1px 0 rgb(255 255 255 / 8%), 0 18px 34px -18px rgb(0 0 0 / 84%); backdrop-filter: blur(var(--blur-glass)); -webkit-backdrop-filter: blur(var(--blur-glass)); touch-action: manipulation; -webkit-touch-callout: none; transition: transform 180ms var(--ease-calm), border-color 180ms ease, background 240ms ease, box-shadow 240ms ease; will-change: transform; }
+.addTask::after, .pause::after { content: ''; position: absolute; inset: 1px; pointer-events: none; border-top: 1px solid rgb(255 255 255 / 6%); border-radius: inherit; }
+.addTask { width: 250px; display: flex; align-items: center; gap: 15px; padding-left: 27px; border-radius: 31px; font-size: 16px; font-weight: 500; text-align: left; }
+.addTask img { width: 21px; height: 21px; opacity: 0.76; }
+.pauseGroup { position: relative; width: 62px; height: 62px; flex: 0 0 62px; }
+.pause { width: 62px; display: grid; place-items: center; border-radius: 50%; transition: transform var(--duration-fast) ease, border-color var(--duration-fast) ease; }
+.addTask:active, .pause:active { transform: scale(0.96); }
+.pause span { position: relative; width: 15px; height: 22px; transition: transform 260ms var(--ease-calm), opacity 180ms ease; }
+.pause span::before, .pause span::after { content: ''; position: absolute; top: 0; width: 5px; height: 22px; background: #c8d1cb; border-radius: 3px; box-shadow: 0 0 8px rgb(255 255 255 / 5%); }
+.pause span::before { left: 0; }
+.pause span::after { right: 0; }
+
+.resume { border-color: rgb(51 214 112 / 28%); }
+.resume span { width: 0; height: 0; transform: translateX(2px); border-top: 10px solid transparent; border-bottom: 10px solid transparent; border-left: 16px solid #47db7a; filter: drop-shadow(0 0 6px rgb(51 214 112 / 20%)); }
+.resume span::before, .resume span::after { display: none; }
+.pausedLabel { position: absolute; right: 0; bottom: 70px; width: 62px; color: #87968f; font-size: 11px; font-weight: 600; text-align: center; }
+
+.holding { transform: scale(0.94); border-color: rgb(51 214 112 / 48%); }
+.holding::before { content: ''; position: absolute; inset: -1px; z-index: 2; pointer-events: none; border: 2px solid transparent; border-top-color: #47db7a; border-radius: inherit; animation: holdProgress 500ms linear both; }
+
+.replanning { width: 333px; height: 62px; display: flex; align-items: center; justify-content: center; gap: 12px; color: #b9c8bf; background: rgb(9 33 19 / 72%); border: 1px solid rgb(51 214 112 / 24%); border-radius: 30px; box-shadow: var(--shadow-glass); font-size: 14px; font-weight: 600; }
+.replanning i { width: 9px; height: 9px; border-radius: 50%; background: #47db7a; box-shadow: 0 0 10px rgb(51 214 112 / 45%); animation: replanPulse 700ms ease-in-out infinite alternate; }
+
+@keyframes holdProgress { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
+@keyframes replanPulse { to { opacity: 0.35; transform: scale(0.7); } }

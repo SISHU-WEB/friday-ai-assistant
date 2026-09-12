@@ -1,0 +1,23 @@
+.empty {
+  position: absolute;
+  top: 228px;
+  left: 30px;
+  width: 333px;
+  height: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #dbe5e0;
+  background: linear-gradient(148deg, rgb(28 38 33 / 54%), rgb(8 13 10 / 72%));
+  border: 1px solid rgb(184 255 209 / 14%);
+  border-radius: 32px;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 6%), 0 20px 38px -22px rgb(0 0 0 / 80%);
+  backdrop-filter: blur(12px);
+  animation: emptyIn var(--duration-medium) var(--ease-calm) both;
+}
+
+.empty > span { width: 9px; height: 9px; margin-bottom: 18px; background: #47db7a; border-radius: 50%; box-shadow: 0 0 12px rgb(51 214 112 / 40%); opacity: 0.72; }
+.empty h2 { margin: 0; font-size: 22px; font-weight: 650; }
+.empty p { margin: 9px 0 0; color: #78877e; font-size: 13px; }
+@keyframes emptyIn { from { opacity: 0; transform: translateX(10px); } }

@@ -1,0 +1,62 @@
+.carousel {
+  position: absolute;
+  top: 220px;
+  left: 30px;
+  width: 333px;
+  height: 390px;
+  outline: none;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+  overscroll-behavior: contain;
+  perspective: 900px;
+  contain: layout paint;
+}
+
+.carousel:focus-visible::after {
+  content: '';
+  position: absolute;
+  inset: 1px -2px 19px -2px;
+  z-index: 8;
+  pointer-events: none;
+  border: 1px solid rgb(66 219 122 / 34%);
+  border-radius: 34px;
+}
+
+.dragging { cursor: grabbing; }
+.cardSlot {
+  position: absolute;
+  top: 8px;
+  left: 0;
+  z-index: var(--card-z);
+  width: 210px;
+  height: 360px;
+  opacity: var(--card-opacity);
+  filter: blur(var(--card-blur));
+  transform: translate3d(var(--card-x), var(--card-y), 0) rotate(var(--card-rotate)) scale(var(--card-scale));
+  transform-origin: top left;
+  transition: transform 390ms var(--ease-calm), opacity 340ms ease, filter 340ms ease;
+  will-change: transform, opacity;
+  cursor: pointer;
+  backface-visibility: hidden;
+}
+
+.cardSlot > article { inset: 0; width: 100%; height: 100%; }
+.cardSlot:focus-visible { outline: 1px solid rgb(66 219 122 / 38%); outline-offset: 2px; border-radius: 32px; }
+.dragging .cardSlot { transition: none; }
+.dragging .cardSlot > article { backdrop-filter: none; -webkit-backdrop-filter: none; }
+
+.srStatus {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) { .cardSlot { transition-duration: 1ms; } }

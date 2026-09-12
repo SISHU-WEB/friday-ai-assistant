@@ -1,0 +1,13 @@
+.calendar { margin-top: 18px; padding: 15px 14px 13px; background: rgb(4 10 7 / 46%); border: 1px solid rgb(216 255 229 / 10%); border-radius: 23px; box-shadow: inset 0 1px 0 rgb(255 255 255 / 4%); }
+.monthHeader { display: grid; grid-template-columns: 32px 1fr 32px; align-items: center; margin-bottom: 12px; }
+.monthHeader strong { color: #dbe5e0; font-size: 13px; font-weight: 650; text-align: center; }
+.monthHeader button { width: 32px; height: 30px; color: #98a69e; background: transparent; border: 0; border-radius: 15px; font-size: 25px; line-height: 1; }
+.monthHeader button:active { color: #47db7a; background: rgb(71 219 122 / 9%); }
+.weekdays, .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.weekdays { margin-bottom: 5px; }
+.weekdays span { color: #66736c; font-size: 8px; font-weight: 700; text-align: center; }
+.day, .blank { width: 31px; height: 31px; justify-self: center; }
+.day { position: relative; color: #a9b5ae; background: transparent; border: 1px solid transparent; border-radius: 50%; font-size: 11px; font-weight: 550; }
+.day:hover { color: #e6eee9; background: rgb(255 255 255 / 5%); }
+.today { color: #47db7a; border-color: rgb(71 219 122 / 34%); }
+.selected { color: #07110b; font-weight: 750; background: #54df83; border-color: #76eca0; box-shadow: 0 0 18px rgb(71 219 122 / 26%); }

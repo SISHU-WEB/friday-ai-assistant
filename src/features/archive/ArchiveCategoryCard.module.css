@@ -1,0 +1,21 @@
+.folder { position: absolute; top: 67px; left: 42px; z-index: var(--folder-z); width: 250px; height: 318px; padding: 0; overflow: visible; color: #dfe9e3; text-align: left; opacity: var(--folder-opacity); filter: blur(var(--folder-blur)); transform: translate3d(var(--folder-x), var(--folder-y), 0) rotateY(var(--folder-rotate)) scale(var(--folder-scale)); transform-origin: 50% 82%; background: linear-gradient(112deg, rgb(220 232 224 / 12%), rgb(89 108 96 / 8%) 45%, rgb(13 21 16 / 48%)); border: 1px solid rgb(240 255 245 / 24%); border-radius: 8px 27px 25px 25px; box-shadow: inset 1px 1px 0 rgb(255 255 255 / 12%), inset -1px -2px 5px rgb(0 0 0 / 22%), 0 22px 42px rgb(0 0 0 / 38%); backdrop-filter: blur(8px); transition: transform 430ms cubic-bezier(.2,.78,.2,1), opacity 380ms ease, filter 380ms ease, border-color 380ms ease, box-shadow 380ms ease; will-change: transform, opacity; backface-visibility: hidden; }
+.folder::before { content: ''; position: absolute; inset: 7px; pointer-events: none; border: 1px solid rgb(255 255 255 / 5%); border-radius: 5px 21px 20px 20px; }
+.folder::after { content: ''; position: absolute; top: 0; right: 18px; left: 72px; height: 1px; background: linear-gradient(90deg, transparent, rgb(255 255 255 / 45%), transparent); opacity: 0.4; }
+.tab { position: absolute; top: -22px; left: -1px; width: 105px; height: 34px; padding: 10px 13px 0; overflow: hidden; color: #a8b2ac; background: linear-gradient(120deg, rgb(215 229 219 / 15%), rgb(35 48 40 / 72%)); border: 1px solid rgb(242 255 247 / 22%); border-bottom: 0; border-radius: 15px 17px 0 0; font-size: 7px; font-weight: 700; letter-spacing: 0.11em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+.activeMark { position: absolute; top: 25px; left: 21px; width: 6px; height: 6px; background: #4ade7d; border-radius: 50%; box-shadow: 0 0 13px rgb(56 229 117 / 65%); opacity: 0; }
+.title { position: absolute; top: 48px; right: 20px; left: 21px; overflow: hidden; font-size: 27px; font-weight: 720; letter-spacing: -0.65px; text-overflow: ellipsis; white-space: nowrap; }
+.count { position: absolute; top: 26px; right: 20px; color: #748079; font-size: 7px; letter-spacing: 0.09em; }
+.divider { position: absolute; top: 96px; right: 20px; left: 21px; height: 1px; background: linear-gradient(90deg, rgb(224 255 234 / 18%), transparent); }
+.previewLabel { position: absolute; top: 118px; left: 21px; color: #69766e; font-size: 7px; font-weight: 700; letter-spacing: 0.11em; }
+.preview, .secondaryPreview { position: absolute; right: 20px; left: 21px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.preview { top: 144px; color: #c8d2cc; font-size: 12px; }
+.secondaryPreview { top: 171px; color: #7f8c84; font-size: 10px; }
+.arrow { position: absolute; right: 20px; bottom: 21px; left: 21px; overflow: hidden; color: #626f67; font-size: 7px; font-weight: 650; letter-spacing: 0.08em; text-overflow: ellipsis; white-space: nowrap; }
+.receding .activeMark, .receding .count, .receding .divider, .receding .previewLabel, .receding .preview, .receding .secondaryPreview { opacity: 0.24; }
+.receding .title { color: rgb(229 237 232 / 45%); font-size: 20px; }
+.active { background: linear-gradient(112deg, rgb(209 229 216 / 17%), rgb(54 78 63 / 13%) 42%, rgb(8 18 12 / 61%)); border-color: rgb(107 244 154 / 44%); box-shadow: inset 1px 1px 0 rgb(245 255 248 / 18%), inset -2px -3px 8px rgb(0 0 0 / 27%), 0 0 31px rgb(45 225 108 / 15%), 0 30px 58px rgb(0 0 0 / 62%); backdrop-filter: blur(11px); }
+.active .tab { color: #65e591; border-color: rgb(109 240 155 / 40%); box-shadow: 0 -5px 18px rgb(41 215 101 / 8%); }
+.active .activeMark { opacity: 1; }
+.active .title { color: #f0f7f2; }
+.active .arrow { color: #58dc85; }
+@media (prefers-reduced-motion: reduce) { .folder { transition-duration: 1ms; } }

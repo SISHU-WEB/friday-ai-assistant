@@ -1,0 +1,15 @@
+.appShell {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 12%, rgb(33 65 45 / 18%), transparent 34rem),
+    #030504;
+}
+
+@media (max-width: 392px), (max-height: 851px) {
+  .appShell {
+    place-items: start center;
+  }
+}

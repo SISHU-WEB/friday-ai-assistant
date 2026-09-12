@@ -1,0 +1,9 @@
+.backdrop { position: absolute; inset: 0; z-index: 30; display: grid; place-items: center; padding: 30px; background: rgb(0 0 0 / 64%); backdrop-filter: blur(8px); animation: fadeIn var(--duration-fast) ease both; }
+.dialog { width: 290px; padding: 24px; color: #dbe5e0; background: linear-gradient(145deg, rgb(29 42 34 / 96%), rgb(7 12 9 / 96%)); border: 1px solid rgb(184 255 209 / 22%); border-radius: 26px; box-shadow: 0 28px 60px rgb(0 0 0 / 60%), inset 0 1px rgb(255 255 255 / 7%); }
+.signal { display: block; width: 8px; height: 8px; margin-bottom: 16px; background: #47db7a; border-radius: 50%; box-shadow: 0 0 10px rgb(51 214 112 / 38%); }
+.dialog h2 { margin: 0 0 24px; font-size: 20px; font-weight: 650; }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.actions button { height: 42px; color: #aebbb3; background: rgb(255 255 255 / 5%); border: 1px solid rgb(255 255 255 / 10%); border-radius: 21px; font-size: 12px; font-weight: 650; }
+.actions .confirm { color: #47db7a; background: rgb(9 33 19 / 84%); border-color: rgb(51 214 112 / 30%); }
+.actions .destructive { color: #ff8f8f; background: rgb(48 13 14 / 72%); border-color: rgb(255 112 112 / 24%); }
+@keyframes fadeIn { from { opacity: 0; } }

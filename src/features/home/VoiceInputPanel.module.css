@@ -1,0 +1,29 @@
+.panel {
+  position: relative;
+  overflow: hidden;
+  color: #dbe5e0;
+  background: rgb(9 33 19 / 82%);
+  border: 1px solid rgb(51 214 112 / 28%);
+  box-shadow: inset 0 -1px 4px -1px rgb(199 255 214 / 9%), 0 16px 32px -12px rgb(0 0 0 / 52%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: panelIn var(--duration-medium) var(--ease-calm) both;
+}
+
+.compact { width: 250px; height: 62px; padding: 11px 20px 7px; border-radius: 30px; }
+.full { width: 333px; height: 112px; padding: 15px 20px; border-radius: 28px; }
+
+.label { display: flex; height: 20px; align-items: center; gap: 8px; white-space: nowrap; }
+.label img { width: 20px; height: 20px; }
+.label strong { font-size: 14px; font-weight: 650; }
+.label span { color: #aebcb3; font-size: 12px; font-weight: 500; }
+
+.waveform { display: flex; height: 38px; align-items: center; gap: 5px; margin-top: 4px; }
+.compact .waveform { height: 17px; gap: 3px; margin-top: 2px; }
+.waveform i { width: 3px; flex: 0 0 3px; border-radius: 999px; background: rgb(51 214 112 / 78%); transform-origin: center; animation: listening-pulse 820ms ease-in-out infinite; }
+.compact .waveform i { width: 2px; flex-basis: 2px; max-height: 15px; }
+
+.mockText { position: absolute; right: 18px; bottom: 17px; width: 210px; margin: 0; overflow: hidden; color: rgb(174 196 182 / 64%); font-size: 9px; line-height: 1.35; text-align: right; text-overflow: ellipsis; white-space: nowrap; animation: transcriptIn 900ms 700ms ease both; }
+
+@keyframes panelIn { from { opacity: 0; transform: translateY(12px) scale(0.98); } }
+@keyframes transcriptIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
