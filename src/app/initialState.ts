@@ -37,6 +37,8 @@ export function createInitialState(): AppState {
     activeTaskIndex: 0,
     selectedDate: tasks[0]?.date ?? '2026-05-26',
     activeArchiveFolder: 'projects',
+    lastDeletedTask: null,
+    deletedTasks: [],
     tasks,
     archiveFolders: normalizeArchiveFolders(archiveRepository.load(archiveFolders)),
     selectedTaskId: null,

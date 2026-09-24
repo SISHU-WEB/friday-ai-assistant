@@ -1,7 +1,7 @@
 import penIcon from '../../assets/pen.svg'
 import type { HomeMode } from '../../app/appReducer'
 import { useLongPress } from '../../hooks/useLongPress'
-import { VoiceInputPanel } from './VoiceInputPanel'
+import { useI18n } from '../../lib/i18n'
 import styles from './BottomControls.module.css'
 
 interface BottomControlsProps {
@@ -13,19 +13,16 @@ interface BottomControlsProps {
 }
 
 export function BottomControls({ mode, onAddTask, onAddTaskLongPress, onPause, onPauseLongPress }: BottomControlsProps) {
+  const { t } = useI18n()
   const addTaskPress = useLongPress({ onPress: onAddTask, onLongPress: onAddTaskLongPress })
   const pausePress = useLongPress({ onPress: onPause, onLongPress: onPauseLongPress })
 
-  if (mode === 'addTaskText' || mode === 'taskDetail' || mode === 'taskEditing' || mode === 'dailySchedule') return null
-
-  if (mode === 'pauseVoiceInput') {
-    return <div className={styles.dock}><VoiceInputPanel variant="full" /></div>
-  }
+  if (mode === 'addTaskText' || mode === 'addTaskVoice' || mode === 'pauseVoiceInput' || mode === 'taskDetail' || mode === 'taskEditing' || mode === 'dailySchedule') return null
 
   if (mode === 'replanning') {
     return (
       <div className={styles.dock}>
-        <div className={styles.replanning} role="status"><i /><span>Replanning your day…</span></div>
+        <div className={styles.replanning} role="status"><i /><span>{t('replanning')}</span></div>
       </div>
     )
   }
@@ -34,16 +31,12 @@ export function BottomControls({ mode, onAddTask, onAddTaskLongPress, onPause, o
 
   return (
     <div className={styles.dock}>
-      {mode === 'addTaskVoice' ? (
-        <VoiceInputPanel variant="compact" />
-      ) : (
-        <button className={`${styles.addTask} ${addTaskPress.isHolding ? styles.holding : ''}`} type="button" aria-label="Add Task. Hold for voice input" {...addTaskPress.bind}>
-          <img src={penIcon} alt="" aria-hidden="true" />
-          <span>Add Task</span>
-        </button>
-      )}
+      <button className={`${styles.addTask} ${addTaskPress.isHolding ? styles.holding : ''}`} type="button" aria-label={t('addTask')} {...addTaskPress.bind}>
+        <img src={penIcon} alt="" aria-hidden="true" />
+        <span>{t('addTask')}</span>
+      </button>
       <div className={styles.pauseGroup}>
-        {paused ? <span className={styles.pausedLabel}>Paused</span> : null}
+        {paused ? <span className={styles.pausedLabel}>{t('paused')}</span> : null}
         <button
           className={`${styles.pause} ${paused ? styles.resume : ''} ${pausePress.isHolding ? styles.holding : ''}`}
           type="button"

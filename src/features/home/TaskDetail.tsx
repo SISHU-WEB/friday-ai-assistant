@@ -6,6 +6,7 @@ interface TaskDetailProps {
   task: Task
   onEdit: () => void
   onDelete: () => void
+  onArchive: (task: Task) => void
 }
 
 const typeLabels = { longTerm: 'Long-term', scheduled: 'Scheduled', flexible: 'Flexible' }
@@ -16,7 +17,7 @@ function statusLabel(status: Task['status']) {
   return 'Active'
 }
 
-export function TaskDetail({ task, onEdit, onDelete }: TaskDetailProps) {
+export function TaskDetail({ task, onEdit, onDelete, onArchive }: TaskDetailProps) {
   return (
     <section className={styles.detail} aria-label={`${task.title} details`}>
       <p className={styles.eyebrow}>TASK DETAIL</p>

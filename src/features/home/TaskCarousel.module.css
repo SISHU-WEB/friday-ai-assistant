@@ -2,7 +2,7 @@
   position: absolute;
   top: 220px;
   left: 30px;
-  width: 333px;
+  width: 500px;
   height: 390px;
   outline: none;
   touch-action: pan-y;
@@ -11,7 +11,7 @@
   cursor: grab;
   overscroll-behavior: contain;
   perspective: 900px;
-  contain: layout paint;
+  overflow: visible;
 }
 
 .carousel:focus-visible::after {
@@ -36,7 +36,7 @@
   filter: blur(var(--card-blur));
   transform: translate3d(var(--card-x), var(--card-y), 0) rotate(var(--card-rotate)) scale(var(--card-scale));
   transform-origin: top left;
-  transition: transform 390ms var(--ease-calm), opacity 340ms ease, filter 340ms ease;
+  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1), opacity 240ms ease, filter 240ms ease;
   will-change: transform, opacity;
   cursor: pointer;
   backface-visibility: hidden;
@@ -44,8 +44,7 @@
 
 .cardSlot > article { inset: 0; width: 100%; height: 100%; }
 .cardSlot:focus-visible { outline: 1px solid rgb(66 219 122 / 38%); outline-offset: 2px; border-radius: 32px; }
-.dragging .cardSlot { transition: none; }
-.dragging .cardSlot > article { backdrop-filter: none; -webkit-backdrop-filter: none; }
+.dragging .cardSlot { transition: transform 0ms, opacity 0ms, filter 0ms; will-change: transform; }
 
 .srStatus {
   position: absolute;
@@ -60,3 +59,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) { .cardSlot { transition-duration: 1ms; } }
+
+.cardSlot[data-side="left"] .previewContent {
+  left: 42px;
+  right: auto;
+  top: 60px;
+}
+.cardSlot[data-side="left"] .previewContent span {
+  left: -3px;
+  right: auto;
+}

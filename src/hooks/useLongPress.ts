@@ -6,7 +6,7 @@ interface LongPressOptions {
   delay?: number
 }
 
-export function useLongPress({ onPress, onLongPress, delay = 500 }: LongPressOptions) {
+export function useLongPress({ onPress, onLongPress, delay = 800 }: LongPressOptions) {
   const timer = useRef<number | null>(null)
   const pressed = useRef(false)
   const longPressed = useRef(false)

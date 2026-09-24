@@ -7,7 +7,7 @@ import styles from './TaskCard.module.css'
 
 type TaskCardVariant = 'primary' | 'preview' | 'stack'
 
-interface TaskCardProps { task: Task; variant: TaskCardVariant; className?: string; activeMix?: number }
+interface TaskCardProps { task: Task; variant: TaskCardVariant; className?: string; active?: boolean; activeMix?: number; side?: 'left' | 'right' }
 
 const previewIcons: Record<string, string> = {
   'ai-study': focusIndicator,
@@ -16,7 +16,7 @@ const previewIcons: Record<string, string> = {
   workout: dumbbellIcon,
 }
 
-export function TaskCard({ task, variant, className = '', activeMix = 1 }: TaskCardProps) {
+export function TaskCard({ task, variant, className = '', active = false, activeMix = 1, side = 'right' }: TaskCardProps) {
   if (variant === 'preview') {
     const icon = previewIcons[task.id] ?? focusIndicator
     return (
@@ -39,7 +39,7 @@ export function TaskCard({ task, variant, className = '', activeMix = 1 }: TaskC
         style={{ '--active-mix': activeMix } as React.CSSProperties}
         aria-label={`${task.title} task`}
       >
-        <div className={styles.fullContent}>
+        <div className={styles.fullContent} aria-hidden={!active}>
           <div>
             <h2>{task.title}</h2>
             <p className={styles.time}>{task.time}</p>
@@ -51,7 +51,7 @@ export function TaskCard({ task, variant, className = '', activeMix = 1 }: TaskC
             <span>{task.category}</span>
           </div>
         </div>
-        <div className={styles.previewContent}>
+        <div className={`${styles.previewContent} ${side === "left" ? styles.previewLeft : ""}`} aria-hidden={active}>
           <img src={icon} alt="" aria-hidden="true" />
           <h2>{task.title}</h2>
           <p>{task.time}</p>

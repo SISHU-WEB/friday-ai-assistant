@@ -1,0 +1,12 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="40" height="32" viewBox="0 0 40 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Folder / Emerald">
+<path id="Vector" d="M1.90476 7.05882C1.90476 4.19765 4.24762 1.88235 7.14286 1.88235H17.1429L20.9524 5.64706H32.8571C35.7524 5.64706 38.0952 7.96235 38.0952 10.8235V25.8824C38.0952 28.7435 35.7524 31.0588 32.8571 31.0588H7.14286C4.24762 31.0588 1.90476 28.7435 1.90476 25.8824V7.05882Z" fill="url(#paint0_linear_0_15)"/>
+<path id="Vector_2" d="M2.38095 10.3529H37.619" stroke="white" stroke-opacity="0.22"/>
+</g>
+<defs>
+<linearGradient id="paint0_linear_0_15" x1="2.85714" y1="1.88235" x2="36.7842" y2="32.3987" gradientUnits="userSpaceOnUse">
+<stop stop-color="#67FFC0"/>
+<stop offset="1" stop-color="#14975F"/>
+</linearGradient>
+</defs>
+</svg>

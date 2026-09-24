@@ -20,9 +20,11 @@ export function shiftIsoDate(isoDate: string, offset: number): string {
 }
 
 export function formatWeekday(isoDate: string): string {
-  return new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(parseLocalDate(isoDate))
+  const lang = localStorage.getItem('friday-language') === 'zh' ? 'zh-CN' : 'en-US'
+  return new Intl.DateTimeFormat(lang, { weekday: 'long' }).format(parseLocalDate(isoDate))
 }
 
 export function formatMonthDay(isoDate: string): string {
-  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(parseLocalDate(isoDate))
+  const lang = localStorage.getItem('friday-language') === 'zh' ? 'zh-CN' : 'en-US'
+  return new Intl.DateTimeFormat(lang, { month: 'short', day: 'numeric' }).format(parseLocalDate(isoDate))
 }

@@ -11,6 +11,16 @@ interface TaskCarouselProps {
 }
 
 const SWIPE_DISTANCE = 82
+const SNAP_DISTANCE = 45
+const FLICK_VELOCITY = 380
+
+type DragAxis = 'pending' | 'horizontal' | 'vertical' | null
+
+function rubberBand(distance: number, dimension = SWIPE_DISTANCE, coefficient = 0.55) {
+  const sign = Math.sign(distance)
+  const magnitude = Math.abs(distance)
+  return sign * (1 - 1 / (magnitude * coefficient / dimension + 1)) * dimension
+}
 
 export function TaskCarousel({ activeTaskIndex, onActiveTaskChange, tasks, onOpenTask }: TaskCarouselProps) {
   const dragStartX = useRef<number | null>(null)
@@ -20,6 +30,8 @@ export function TaskCarousel({ activeTaskIndex, onActiveTaskChange, tasks, onOpe
   const animationFrame = useRef<number | null>(null)
   const suppressClickUntil = useRef(0)
   const wheelLocked = useRef(false)
+  const dragAxis = useRef<DragAxis>(null)
+  const velocitySamples = useRef<Array<{ x: number; time: number }>>([])
   const [dragX, setDragX] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
 
@@ -28,7 +40,7 @@ export function TaskCarousel({ activeTaskIndex, onActiveTaskChange, tasks, onOpe
   }, [])
 
   const move = (direction: 1 | -1) => {
-    const nextIndex = (activeTaskIndex + direction + tasks.length) % tasks.length
+    const nextIndex = Math.max(0, Math.min(tasks.length - 1, activeTaskIndex + direction))
     onActiveTaskChange(nextIndex)
   }
 
@@ -43,10 +55,7 @@ export function TaskCarousel({ activeTaskIndex, onActiveTaskChange, tasks, onOpe
   }
 
   const relativeOffset = (index: number) => {
-    let offset = index - activeTaskIndex
-    if (offset > tasks.length / 2) offset -= tasks.length
-    if (offset < -tasks.length / 2) offset += tasks.length
-    return offset
+    return index - activeTaskIndex
   }
 
   const handlePointerDown = (event: PointerEvent<HTMLElement>) => {
@@ -55,17 +64,27 @@ export function TaskCarousel({ activeTaskIndex, onActiveTaskChange, tasks, onOpe
     dragStartY.current = event.clientY
     dragXRef.current = 0
     pendingX.current = 0
-    setIsDragging(true)
-    event.currentTarget.setPointerCapture(event.pointerId)
+    dragAxis.current = 'pending'
+    velocitySamples.current = [{ x: event.clientX, time: performance.now() }]
   }
 
   const handlePointerMove = (event: PointerEvent<HTMLElement>) => {
     if (dragStartX.current === null || dragStartY.current === null) return
     const distance = event.clientX - dragStartX.current
     const verticalDistance = event.clientY - dragStartY.current
-    if (Math.abs(verticalDistance) > Math.abs(distance) && Math.abs(verticalDistance) > 10) return
-    if (Math.abs(distance) > 4) event.preventDefault()
-    scheduleDragFrame(Math.max(-SWIPE_DISTANCE, Math.min(SWIPE_DISTANCE, distance)))
+    if (dragAxis.current === 'pending' && Math.max(Math.abs(distance), Math.abs(verticalDistance)) > 8) {
+      dragAxis.current = Math.abs(distance) > Math.abs(verticalDistance) * 1.1 ? 'horizontal' : 'vertical'
+      if (dragAxis.current === 'horizontal') setIsDragging(true)
+    }
+    if (dragAxis.current !== 'horizontal') return
+    event.preventDefault()
+    const atStart = activeTaskIndex === 0 && distance > 0
+    const atEnd = activeTaskIndex === tasks.length - 1 && distance < 0
+    const visualDistance = atStart || atEnd ? rubberBand(distance) : Math.max(-SWIPE_DISTANCE * 1.18, Math.min(SWIPE_DISTANCE * 1.18, distance))
+    const now = performance.now()
+    velocitySamples.current.push({ x: event.clientX, time: now })
+    velocitySamples.current = velocitySamples.current.filter((sample) => now - sample.time <= 100)
+    scheduleDragFrame(visualDistance)
   }
 
   const finishDrag = () => {
@@ -76,14 +95,22 @@ export function TaskCarousel({ activeTaskIndex, onActiveTaskChange, tasks, onOpe
       dragXRef.current = pendingX.current
     }
     const releasedDistance = dragXRef.current
-    if (Math.abs(releasedDistance) >= 6) suppressClickUntil.current = Date.now() + 300
+    const samples = velocitySamples.current
+    const firstSample = samples[0]
+    const lastSample = samples[samples.length - 1]
+    const elapsed = firstSample && lastSample ? Math.max(16, lastSample.time - firstSample.time) : 16
+    const velocity = firstSample && lastSample ? (lastSample.x - firstSample.x) / elapsed * 1000 : 0
+    const projectedDistance = releasedDistance + velocity * 0.18
+    if (Math.abs(releasedDistance) >= 30) suppressClickUntil.current = Date.now() + 100
     setIsDragging(false)
-    if (releasedDistance <= -38) move(1)
-    else if (releasedDistance >= 38) move(-1)
+    if ((projectedDistance <= -SNAP_DISTANCE || velocity <= -FLICK_VELOCITY) && activeTaskIndex < tasks.length - 1) move(1)
+    else if ((projectedDistance >= SNAP_DISTANCE || velocity >= FLICK_VELOCITY) && activeTaskIndex > 0) move(-1)
     dragStartX.current = null
     dragStartY.current = null
     dragXRef.current = 0
     pendingX.current = 0
+    dragAxis.current = null
+    velocitySamples.current = []
     setDragX(0)
   }
 
@@ -118,11 +145,11 @@ export function TaskCarousel({ activeTaskIndex, onActiveTaskChange, tasks, onOpe
         const restingOffset = relativeOffset(index)
         const position = restingOffset + progress
         const depth = Math.abs(position)
-        const x = position < 0 ? 30 + position * 58 : 30 + position * 64
+        const x = position < 0 ? 30 + position * 96 : 30 + position * 64
         const y = Math.min(depth, 4) * 25
-        const scale = Math.max(0.74, 1 - depth * 0.055)
-        const opacity = Math.max(0, 1 - depth * 0.24)
-        const blur = Math.min(1.8, depth * 0.34)
+        const scale = Math.max(0.82, 1 - depth * 0.035)
+        const opacity = 1
+        const blur = Math.min(0.6, depth * 0.12)
         const activeMix = Math.max(0, 1 - depth * 1.35)
         const visible = depth < 4.25
         const style = {
@@ -141,12 +168,13 @@ export function TaskCarousel({ activeTaskIndex, onActiveTaskChange, tasks, onOpe
             className={styles.cardSlot}
             style={style}
             data-active={index === activeTaskIndex}
+            data-side={position < 0 ? 'left' : 'right'}
             role="button"
             tabIndex={visible ? 0 : -1}
             aria-hidden={!visible}
             aria-label={index === activeTaskIndex ? `Open ${task.title}` : `Show ${task.title}`}
             onClick={() => {
-              if (Date.now() <= suppressClickUntil.current) return
+              if (Math.abs(dragXRef.current) > 5) return
               if (index === activeTaskIndex) onOpenTask(task)
               else onActiveTaskChange(index)
             }}
@@ -158,7 +186,7 @@ export function TaskCarousel({ activeTaskIndex, onActiveTaskChange, tasks, onOpe
               else onActiveTaskChange(index)
             }}
           >
-            <TaskCard task={task} variant="stack" activeMix={activeMix} />
+            <TaskCard task={task} variant="stack" active={index === activeTaskIndex} activeMix={activeMix} side={position < 0 ? "left" : "right"} />
           </div>
         )
       })}

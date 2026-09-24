@@ -1,0 +1,165 @@
+.panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(180deg, #0a120e 0%, #040907 100%);
+  z-index: 50;
+  padding: calc(60px + env(safe-area-inset-top, 0px)) 24px 30px;
+  overflow-y: auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 28px;
+}
+
+.eyebrow {
+  color: #6fdca0;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  margin: 0 0 4px;
+}
+
+.header h2 {
+  color: #fff;
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.closeBtn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #9db3a7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 100ms ease-out;
+}
+
+.closeBtn:active { transform: scale(0.9); }
+
+.section {
+  margin-bottom: 28px;
+}
+
+.section h3 {
+  color: #6f8a7c;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 0 0 12px;
+}
+
+.desc {
+  color: #6f8a7c;
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0 0 16px;
+}
+
+.stats {
+  display: flex;
+  gap: 12px;
+}
+
+.stat {
+  flex: 1;
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(18, 25, 21, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  text-align: center;
+}
+
+.statValue {
+  display: block;
+  color: #42db7a;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.statLabel {
+  display: block;
+  color: #6f8a7c;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.primaryBtn, .secondaryBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 16px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 100ms ease-out;
+}
+
+.primaryBtn {
+  background: rgba(66, 219, 122, 0.15);
+  border: 1px solid rgba(66, 219, 122, 0.3);
+  color: #42db7a;
+}
+
+.secondaryBtn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #edf5f0;
+}
+
+.primaryBtn:active, .secondaryBtn:active { transform: scale(0.98); }
+
+.about {
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(18, 25, 21, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.about p {
+  margin: 0;
+  color: #edf5f0;
+  font-size: 15px;
+}
+
+.version {
+  color: #6f8a7c;
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+.dangerBtn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(232, 93, 93, 0.1);
+  border: 1px solid rgba(232, 93, 93, 0.2);
+  color: #e85d5d;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 100ms ease-out;
+}
+
+.dangerBtn:active { transform: scale(0.98); }

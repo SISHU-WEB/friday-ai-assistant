@@ -1,0 +1,57 @@
+.header {
+  position: absolute;
+  top: calc(42px + env(safe-area-inset-top, 0px));
+  left: 30px;
+  width: 333px;
+  height: 144px;
+}
+
+.dateBlock {
+  display: block;
+  width: 176px;
+  height: 74px;
+  padding: 0;
+  color: inherit;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  outline: none;
+  touch-action: pan-y;
+  cursor: grab;
+  user-select: none;
+}
+
+.dateBlock:active { cursor: grabbing; transform: scale(0.98); }
+.dateBlock { transition: transform 160ms var(--ease-calm); }
+.dateBlock:focus-visible { border-radius: 14px; box-shadow: 0 0 0 1px rgb(66 219 122 / 35%); }
+.dateContent { width: max-content; transition: transform var(--duration-fast) var(--ease-calm); animation: dateIn var(--duration-medium) var(--ease-calm) both; }
+
+.dateBlock h1 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -1.45px;
+}
+
+.dateBlock p {
+  width: max-content;
+  min-height: 25px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 5px 0 0;
+  padding: 3px 10px 3px 7px;
+  color: var(--color-text-secondary);
+  background: rgb(9 33 19 / 52%);
+  border: 1px solid rgb(51 214 112 / 16%);
+  border-radius: 13px;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.dateBlock p i { width: 5px; height: 5px; flex: 0 0 5px; background: #47db7a; border-radius: 50%; box-shadow: 0 0 7px rgb(51 214 112 / 38%); }
+
+@keyframes dateIn { from { opacity: 0.5; } }

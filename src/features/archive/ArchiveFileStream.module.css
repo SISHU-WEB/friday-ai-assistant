@@ -1,0 +1,8 @@
+.stream { position: absolute; z-index: 8; top: 208px; left: 17px; width: 359px; height: 306px; overflow: hidden; perspective: 850px; perspective-origin: 48% 45%; transform-style: preserve-3d; touch-action: pan-y; cursor: grab; contain: layout paint; user-select: none; -webkit-user-select: none; }
+.stage { position: absolute; inset: 0; transform: rotateX(14deg) scale(1.24); transform-origin: 50% 50%; transform-style: preserve-3d; }
+.trackGlow { position: absolute; top: 55px; right: -91px; left: -91px; height: 214px; pointer-events: none; background: radial-gradient(ellipse 76% 45% at 48% 54%, rgb(52 211 105 / 8%), transparent 73%); transform: translateZ(-74px) rotateX(62deg); transform-origin: 50% 58%; }
+.trackGlow::before, .trackGlow::after { content: ''; position: absolute; right: -28px; left: -28px; height: 84px; border-top: 1px solid rgb(229 255 237 / 8%); border-radius: 50%; }
+.trackGlow::before { top: 151px; }
+.trackGlow::after { top: 162px; opacity: 0.4; }
+.dragging { cursor: grabbing; }
+.dragging button { transition: none; }

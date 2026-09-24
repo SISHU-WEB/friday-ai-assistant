@@ -13,6 +13,8 @@ export type HomeMode =
   | 'taskDetail'
   | 'taskEditing'
   | 'dailySchedule'
+  | 'trash'
+  | 'settings'
 
 export interface AppState {
   view: AppView
@@ -20,6 +22,8 @@ export interface AppState {
   activeTaskIndex: number
   selectedDate: string
   activeArchiveFolder: string
+  lastDeletedTask: Task | null
+  deletedTasks: Task[]
   tasks: Task[]
   archiveFolders: ArchiveFolder[]
   selectedTaskId: string | null
@@ -39,6 +43,11 @@ export type AppAction =
   | { type: 'CLOSE_TASK' }
   | { type: 'UPDATE_TASK'; task: Task }
   | { type: 'DELETE_TASK'; id: string }
+  | { type: 'COMPLETE_TASK'; id: string }
+  | { type: 'UNDO_DELETE_TASK' }
+  | { type: 'RESTORE_TASK'; id: string }
+  | { type: 'PERMANENT_DELETE'; id: string }
+  | { type: 'EMPTY_TRASH' }
 
 export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
@@ -74,13 +83,46 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         selectedDate: action.task.date,
         homeMode: 'taskDetail',
       }
-    case 'DELETE_TASK':
+    case 'UNDO_DELETE_TASK':
+      if (!state.lastDeletedTask) return state
       return {
         ...state,
+        tasks: [state.lastDeletedTask, ...state.tasks],
+        lastDeletedTask: null,
+      }
+    case 'COMPLETE_TASK':
+      return { ...state, tasks: state.tasks.map((t) => t.id === action.id ? { ...t, status: 'completed' } : t) }
+    case 'DELETE_TASK': {
+      const deleted = state.tasks.find((task) => task.id === action.id)
+      return {
+        ...state,
+        lastDeletedTask: deleted ?? null,
+        deletedTasks: deleted ? [deleted, ...state.deletedTasks].slice(0, 20) : state.deletedTasks,
         tasks: state.tasks.filter((task) => task.id !== action.id),
         selectedTaskId: null,
         activeTaskIndex: 0,
         homeMode: state.taskReturnMode,
+      }
+    }
+    case 'RESTORE_TASK': {
+      const task = state.deletedTasks.find((t) => t.id === action.id)
+      if (!task) return state
+      return {
+        ...state,
+        tasks: [task, ...state.tasks],
+        deletedTasks: state.deletedTasks.filter((t) => t.id !== action.id),
+        homeMode: 'running',
+      }
+    }
+    case 'PERMANENT_DELETE':
+      return {
+        ...state,
+        deletedTasks: state.deletedTasks.filter((t) => t.id !== action.id),
+      }
+    case 'EMPTY_TRASH':
+      return {
+        ...state,
+        deletedTasks: [],
       }
   }
 }

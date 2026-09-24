@@ -1,0 +1,22 @@
+{
+  "purpose": "Recovery manifest for the approved Archive folder layout before browsing interaction was added",
+  "sceneObjectCount": 21,
+  "folderCount": 9,
+  "initialSelectedIndex": 1,
+  "cameraChanged": false,
+  "materials": {
+    "white": { "name": "Archive Milky Frosted", "id": "2d181676-b003-47cb-8775-ae4c290a8d39" },
+    "selected": { "name": "Archive Selected Green", "id": "06fcef5f-023d-4714-a70f-fe87cada16e2" }
+  },
+  "slotsFrontToBack": [
+    { "root": "d5092a35-7738-4e6e-b024-a64c95f6af81", "face": "7f3770de-2c0f-4d3b-977c-9a1ddbbe637c", "position": [-74.82, 90, -49.4], "rotation": [-1.99, -0.07, 0] },
+    { "root": "be252666-0150-4b31-92ef-7ce9444b50b3", "face": "31b65877-3ed5-4320-b62b-1d52e5221e16", "position": [-74.82, 90, -19.49], "rotation": [-0.47, -2.2, -0.02] },
+    { "root": "e55c1168-2b85-4ede-8de9-b005363b1495", "face": "ed1c49d6-e471-439c-b848-a24e6ffb779d", "position": [-74.82, 90, 6.92], "rotation": [-0.96, 0, 0] },
+    { "root": "08f4dd29-d913-4087-a551-155ad71ea8ed", "face": "d6824d5e-b5d0-46c4-8062-a9cb0514164e", "position": [-74.82, 90, 37.86], "rotation": [-2.41, 0, 0] },
+    { "root": "796f739a-38f4-4c6a-80c8-4d1529c98489", "face": "77bbe236-20b7-4642-a26d-b5cf5b7fc15d", "position": [-74.82, 90, 64.22], "rotation": [0, 0, 0] },
+    { "root": "1ba740f7-5f45-4b13-9dd8-9f330f48b6d0", "face": "0c2af0ad-8cbb-41b9-aef0-62d2cae2e36e", "position": [-74.82, 90, 89.94], "rotation": [0, 0, 0] },
+    { "root": "bbfaf66b-9fc2-46cf-b3a2-39c6d9f44346", "face": "d4f905d2-7c36-4bd6-bedd-29cc916d04ae", "position": [-74.82, 90, 115.66], "rotation": [0, 0, 0] },
+    { "root": "63cc949f-9f17-4e7e-8a2d-b1b0d53f2102", "face": "4674fac6-43cf-4fcc-8447-62e911a165bb", "position": [-74.82, 90, 141.02], "rotation": [0, 0, 0] },
+    { "root": "52291e25-d856-4dfb-9223-9404baac96a4", "face": "f2a418f7-8731-40b5-bfe1-2eb899da333f", "position": [-74.82, 90, 172.92], "rotation": [0, 1.46, 0] }
+  ]
+}

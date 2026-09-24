@@ -1,8 +1,8 @@
 .header {
   position: absolute;
-  top: 54px;
-  left: 30px;
-  width: 333px;
+  top: calc(42px + env(safe-area-inset-top, 0px));
+  left: var(--page-gutter, 30px);
+  right: var(--page-gutter, 30px);
   height: 144px;
 }
 
@@ -21,7 +21,8 @@
   user-select: none;
 }
 
-.dateBlock:active { cursor: grabbing; }
+.dateBlock:active { cursor: grabbing; transform: scale(0.98); }
+.dateBlock { transition: transform 160ms var(--ease-calm); }
 .dateBlock:focus-visible { border-radius: 14px; box-shadow: 0 0 0 1px rgb(66 219 122 / 35%); }
 .dateContent { width: max-content; transition: transform var(--duration-fast) var(--ease-calm); animation: dateIn var(--duration-medium) var(--ease-calm) both; }
 
@@ -54,3 +55,75 @@
 .dateBlock p i { width: 5px; height: 5px; flex: 0 0 5px; background: #47db7a; border-radius: 50%; box-shadow: 0 0 7px rgb(51 214 112 / 38%); }
 
 @keyframes dateIn { from { opacity: 0.5; } }
+
+.rightButtons {
+  position: absolute;
+  top: 30px;
+  right: 0;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.trashButton {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  border-radius: 24px;
+  background: linear-gradient(145deg, rgb(35 50 40 / 78%), rgb(12 18 14 / 82%));
+  border: 1px solid rgb(227 255 236 / 14%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 8%), 0 16px 32px -16px rgb(0 0 0 / 80%);
+  backdrop-filter: blur(var(--blur-glass));
+  -webkit-backdrop-filter: blur(var(--blur-glass));
+  color: #9db3a7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: transform 160ms var(--ease-calm), box-shadow 240ms ease, border-color 200ms ease;
+}
+
+.trashButton:active { transform: scale(0.92); }
+.trashButton:hover {
+  border-color: rgb(232 93 93 / 28%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%), 0 16px 32px -16px rgb(0 0 0 / 80%), 0 0 20px rgb(232 93 93 / 12%);
+}
+
+.badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  background: #e85d5d;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+}
+
+.settingsBtn {
+  position: absolute;
+  top: 36px;
+  right: 96px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: #6f8a7c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 100ms ease-out, color 0.2s;
+}
+
+.settingsBtn:active { transform: scale(0.9); }
+.settingsBtn:hover { color: #9db3a7; }

@@ -26,4 +26,12 @@
 .cancel { color: #9aa89f; background: rgb(255 255 255 / 4%); border: 1px solid rgb(255 255 255 / 9%); }
 .save { color: #47db7a; background: rgb(9 33 19 / 82%); border: 1px solid rgb(51 214 112 / 30%); }
 .save:disabled { opacity: 0.42; }
+.editor { left: var(--page-gutter, 30px); right: var(--page-gutter, 30px); width: auto; height: auto; min-height: 520px; }
+.editor input, .editor textarea { min-width: 0; }
+@media (max-width: 360px) {
+  .editor { padding: 20px 14px; }
+  .twoFields { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .segments { gap: 4px; }
+  .segments button { padding: 0 7px; }
+}
 @keyframes editorIn { from { opacity: 0; transform: translateY(10px); } }
