@@ -9,3 +9,9 @@ Thumbs.db
 .vite/
 node_modules/.tmp/
 *.bak
+
+# Capacitor / Xcode
+ios/App/App/public
+ios/App/DerivedData/
+ios/App/.build/
+
