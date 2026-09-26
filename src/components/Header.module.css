@@ -1,9 +1,31 @@
 .header {
-  position: absolute;
-  top: calc(42px + env(safe-area-inset-top, 0px));
-  left: var(--page-gutter, 30px);
-  right: var(--page-gutter, 30px);
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
   height: 144px;
+  margin: calc(42px + env(safe-area-inset-top, 0px)) var(--page-gutter, 30px) 0;
+}
+
+.header.compact {
+  height: 88px;
+  margin-top: calc(14px + env(safe-area-inset-top, 0px));
+}
+
+.actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.iconStack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .dateBlock {
@@ -56,40 +78,23 @@
 
 @keyframes dateIn { from { opacity: 0.5; } }
 
-.rightButtons {
-  position: absolute;
-  top: 30px;
-  right: 0;
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
 .trashButton {
   position: relative;
-  width: 84px;
-  height: 84px;
-  border-radius: 24px;
-  background: linear-gradient(145deg, rgb(35 50 40 / 78%), rgb(12 18 14 / 82%));
-  border: 1px solid rgb(227 255 236 / 14%);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 8%), 0 16px 32px -16px rgb(0 0 0 / 80%);
-  backdrop-filter: blur(var(--blur-glass));
-  -webkit-backdrop-filter: blur(var(--blur-glass));
-  color: #9db3a7;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: #6f8a7c;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
   cursor: pointer;
-  transition: transform 160ms var(--ease-calm), box-shadow 240ms ease, border-color 200ms ease;
+  transition: transform 100ms ease-out, color 0.2s;
 }
 
-.trashButton:active { transform: scale(0.92); }
-.trashButton:hover {
-  border-color: rgb(232 93 93 / 28%);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%), 0 16px 32px -16px rgb(0 0 0 / 80%), 0 0 20px rgb(232 93 93 / 12%);
-}
+.trashButton:active { transform: scale(0.9); }
+.trashButton:hover { color: #9db3a7; }
 
 .badge {
   position: absolute;
@@ -100,7 +105,7 @@
   border-radius: 10px;
   background: #e85d5d;
   color: #fff;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -108,10 +113,20 @@
   padding: 0 6px;
 }
 
+/* Compact header for short viewports (R-01): reclaim vertical space so the
+   task carousel never slides under the Dock. */
+@media (max-height: 700px) {
+  .header {
+    height: 128px;
+    margin-top: calc(12px + env(safe-area-inset-top, 0px));
+  }
+  .header.compact {
+    height: 88px;
+  }
+}
+
 .settingsBtn {
-  position: absolute;
-  top: 36px;
-  right: 96px;
+  position: relative;
   width: 44px;
   height: 44px;
   border-radius: 50%;
@@ -127,3 +142,31 @@
 
 .settingsBtn:active { transform: scale(0.9); }
 .settingsBtn:hover { color: #9db3a7; }
+
+/* Very narrow phones (iPhone SE 320/375): let the date block shrink and
+   tighten the action cluster so the header never overflows (R-01 narrow). */
+@media (max-width: 380px) {
+  .header { gap: 8px; }
+  .actions { gap: 8px; }
+  .dateBlock { width: auto; flex: 0 1 auto; min-width: 0; }
+  .dateBlock h1 { font-size: 32px; white-space: nowrap; }
+}
+
+/* R-05 phone landscape: collapse the tall stacked header into a slim single
+   row so the stage keeps ~260px of vertical room on a 390px-tall screen. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .header,
+  .header.compact {
+    height: auto;
+    align-items: center;
+    margin-top: calc(8px + env(safe-area-inset-top, 0px));
+  }
+
+  .dateBlock { width: auto; height: auto; flex: 0 1 auto; min-width: 0; }
+  .dateBlock h1 { font-size: 24px; line-height: 1.1; white-space: nowrap; }
+  .dateBlock p { min-height: 0; margin-top: 3px; padding: 2px 9px; font-size: 13px; }
+
+  .actions { margin-top: 0; gap: 10px; }
+  .iconStack { flex-direction: row; gap: 8px; }
+  .settingsBtn, .trashButton { width: 40px; height: 40px; }
+}

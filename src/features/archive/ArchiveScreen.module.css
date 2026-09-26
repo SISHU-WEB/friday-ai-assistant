@@ -20,3 +20,15 @@
     box-shadow: none;
   }
 }
+
+/* R-05 landscape phones: drop the 393px phone frame, fill the viewport.
+   The inner 402x874 composition is rearranged in ArchiveView.module.css. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .screen {
+    width: 100%;
+    height: 100dvh;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}

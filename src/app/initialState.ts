@@ -1,4 +1,5 @@
 import type { AppState } from './appReducer'
+import type { Task } from '../types/task'
 import { mockTasks } from '../data/mockTasks'
 import { archiveFolders } from '../data/mockArchive'
 import { archiveRepository, taskRepository } from '../data/repositories'
@@ -113,7 +114,7 @@ export function createInitialState(): AppState {
     view: 'home',
     homeMode: 'running',
     activeTaskIndex: 0,
-    selectedDate: tasks[0]?.date ?? '2026-05-26',
+    selectedDate: tasks[0]?.date ?? new Date().toISOString().slice(0, 10),
     activeArchiveFolder: 'projects',
     lastDeletedTask: null,
     deletedTasks: [],
@@ -122,4 +123,19 @@ export function createInitialState(): AppState {
     selectedTaskId: null,
     taskReturnMode: 'running',
   }
+}
+
+/**
+ * True when the local task list is still the untouched demo seed. Used on
+ * login: a seed must never be pushed to (or kept over) a real account (F-4).
+ */
+export function isDemoTaskSeed(tasks: Task[]): boolean {
+  if (tasks.length !== mockTasks.length) return false
+  const seedIds = new Set(mockTasks.map((t) => t.id))
+  return tasks.every((t) => seedIds.has(t.id))
+}
+
+/** True when the local archive folders are still the untouched demo seed. */
+export function isDemoArchiveSeed(folders: ArchiveFolder[]): boolean {
+  return isUntouchedSeed(folders)
 }

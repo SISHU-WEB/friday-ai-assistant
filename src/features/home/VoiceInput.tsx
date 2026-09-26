@@ -33,6 +33,15 @@ export function VoiceInput({ selectedDate, purpose = 'task', onSubmit, onInterru
     return () => stop()
   }, [start, stop, supported, lang])
 
+  // Close on Escape so keyboard users are not trapped in the dialog (U-5).
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onCancel()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onCancel])
+
   const displayText = transcript || manualText
 
   const confirm = () => {

@@ -5,9 +5,26 @@
   display: grid;
   place-items: center;
   padding: 24px;
+  overflow-y: auto;
   background: rgb(1 5 3 / 74%);
   backdrop-filter: blur(14px) saturate(120%);
   -webkit-backdrop-filter: blur(14px) saturate(120%);
+}
+
+/* R-05: when the card is taller than the landscape viewport, keep its top
+   reachable instead of clipping it above the scroll origin. */
+@supports (place-items: safe center) {
+  .voiceOverlay { place-items: safe center; }
+}
+
+/* R-05 phone landscape: compact card that fits / scrolls inside 390px. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .voiceOverlay { padding: 10px; }
+  .voiceCard { gap: 9px; padding: 16px 18px 14px; }
+  .mic { width: 54px; height: 54px; }
+  .voiceCard h2 { font-size: 18px; }
+  .transcript { min-height: 44px; padding: 10px 12px; }
+  .cancelBtn, .retryBtn, .confirmBtn { min-height: 40px; }
 }
 
 .voiceCard {

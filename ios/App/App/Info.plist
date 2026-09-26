@@ -24,6 +24,12 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>MinimumOSVersion</key>
+	<string>17.0</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Friday 需要麦克风来进行语音日程录入</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Friday 需要语音识别功能将你的语音转换为日程文字</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

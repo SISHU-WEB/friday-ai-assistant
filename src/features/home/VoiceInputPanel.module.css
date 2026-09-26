@@ -23,7 +23,7 @@
 .waveform i { width: 3px; flex: 0 0 3px; border-radius: 999px; background: linear-gradient(180deg, rgb(120 255 178), rgb(51 214 112 / 85%)); box-shadow: 0 0 6px rgb(51 214 112 / 55%); transform-origin: center; animation: listening-pulse 820ms ease-in-out infinite; }
 .compact .waveform i { width: 2px; flex-basis: 2px; max-height: 15px; }
 
-.mockText { position: absolute; right: 18px; bottom: 17px; width: 210px; margin: 0; overflow: hidden; color: rgb(174 196 182 / 64%); font-size: 9px; line-height: 1.35; text-align: right; text-overflow: ellipsis; white-space: nowrap; animation: transcriptIn 900ms 700ms ease both; }
+.mockText { position: absolute; right: 18px; bottom: 17px; width: 210px; margin: 0; overflow: hidden; color: rgb(174 196 182 / 78%); font-size: 12px; line-height: 1.35; text-align: right; text-overflow: ellipsis; white-space: nowrap; animation: transcriptIn 900ms 700ms ease both; }
 
 @keyframes panelIn { from { opacity: 0; transform: translateY(12px) scale(0.98); } }
 @keyframes transcriptIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }

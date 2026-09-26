@@ -29,12 +29,17 @@ export class LocalStorageCollectionRepository<T> implements CollectionRepository
           ? parsed.data
           : null
 
-      if (!data || !data.every(this.isItem)) {
+      if (!data) {
         this.save(fallback)
         return fallback
       }
 
-      return data
+      // Drop invalid entries instead of discarding the whole store — one bad
+      // record must not wipe the user's local data (S-4).
+      const valid = data.filter(this.isItem)
+      if (valid.length !== data.length) this.save(valid)
+
+      return valid
     } catch {
       return fallback
     }

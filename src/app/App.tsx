@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import { ToastContainer, type ToastMessage } from '../components/Toast'
-import { ArchiveScreen } from '../features/archive/ArchiveScreen'
 import type { ArchiveReveal } from '../features/archive/ArchiveView'
 import { HomeScreen } from '../features/home/HomeScreen'
 import { Auth } from '../components/Auth'
@@ -13,12 +12,38 @@ import type { InterruptionResult } from '../features/home/InterruptionPanel'
 import type { Task, TaskStatus } from '../types/task'
 import type { ArchiveFolder } from '../types/archive'
 import { appReducer } from './appReducer'
-import { createInitialState } from './initialState'
+import { createInitialState, isDemoArchiveSeed, isDemoTaskSeed } from './initialState'
 import { archiveRepository, taskRepository } from '../data/repositories'
+import { parseBackup } from '../lib/backup'
+import { clearTombstones, recordTombstone } from '../lib/tombstones'
+import { ConfirmModal } from '../components/ConfirmModal'
+import { useI18n } from '../lib/i18n'
 import type { Session } from '@supabase/supabase-js'
 import styles from './App.module.css'
 
+/** Monotonic toast ids — Date.now() collides within the same millisecond (B-4). */
+let toastSeq = 0
+
+// The archive screen is a separate view; keep it out of the initial bundle (P-2).
+const ArchiveScreen = lazy(() =>
+  import('../features/archive/ArchiveScreen').then((m) => ({ default: m.ArchiveScreen })),
+)
+
+const tasksSignature = (tasks: Task[]) =>
+  tasks.map((t) => `${t.id}:${t.updatedAt ?? t.createdAt ?? ''}`).sort().join('|')
+
+const foldersSignature = (folders: ArchiveFolder[]) =>
+  folders
+    .map((f) => `${f.id}:${f.name}:${f.updatedAt ?? ''}:(${f.items.map((i) => `${i.id}:${i.updatedAt ?? i.createdAt ?? ''}`).join(',')})`)
+    .join('|')
+
+function freshId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID()
+  return `t-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+}
+
 export function App() {
+  const { language } = useI18n()
   const [state, dispatch] = useReducer(appReducer, undefined, createInitialState)
   const [toasts, setToasts] = useState<ToastMessage[]>([])
   const [session, setSession] = useState<Session | null>(null)
@@ -26,6 +51,20 @@ export function App() {
   const syncScheduledRef = useRef<number | null>(null)
   const [subStatus, setSubStatus] = useState(subscriptionManager.getStatus())
   const [archiveReveal, setArchiveReveal] = useState<ArchiveReveal | null>(null)
+  const [guestMode, setGuestMode] = useState(() => {
+    try { return localStorage.getItem('friday.guestMode') === '1' } catch { return false }
+  })
+  const [syncReady, setSyncReady] = useState(false)
+  const initialSyncRef = useRef(false)
+  const [pendingConfirm, setPendingConfirm] = useState<null | {
+    title: string
+    confirmLabel: string
+    destructive: boolean
+    run: () => void
+  }>(null)
+
+  const stateRef = useRef(state)
+  stateRef.current = state
 
   useEffect(() => {
     const unsub = subscriptionManager.subscribe((s) => setSubStatus(s))
@@ -37,8 +76,18 @@ export function App() {
   }, [])
 
   const showToast = useCallback((text: string, actionLabel?: string, onAction?: () => void) => {
-    const id = Date.now()
+    const id = ++toastSeq
     setToasts((prev) => [...prev.slice(-2), { id, text, actionLabel, onAction }])
+  }, [])
+
+  const enterGuestMode = useCallback(() => {
+    try { localStorage.setItem('friday.guestMode', '1') } catch {}
+    setGuestMode(true)
+  }, [])
+
+  const exitGuestMode = useCallback(() => {
+    try { localStorage.removeItem('friday.guestMode') } catch {}
+    setGuestMode(false)
   }, [])
 
   useEffect(() => {
@@ -61,23 +110,59 @@ export function App() {
   }, [])
 
   const scheduleSync = useCallback(() => {
+    if (!session?.user?.id || !syncReady) return
     if (syncScheduledRef.current !== null) window.clearTimeout(syncScheduledRef.current)
     syncScheduledRef.current = window.setTimeout(async () => {
       if (!session?.user?.id) return
       try {
         const newTasks = await syncManager.syncTasks(session, state.tasks)
-        if (newTasks.length !== state.tasks.length || JSON.stringify(newTasks) !== JSON.stringify(state.tasks)) {
-          dispatch({ type: 'REPLACE_DAY_TASKS', date: state.selectedDate, tasks: newTasks })
+        if (tasksSignature(newTasks) !== tasksSignature(state.tasks)) {
+          dispatch({ type: 'REPLACE_ALL_TASKS', tasks: newTasks })
         }
         const newFolders = await syncManager.syncArchive(session, state.archiveFolders)
-        if (JSON.stringify(newFolders) !== JSON.stringify(state.archiveFolders)) {
+        if (foldersSignature(newFolders) !== foldersSignature(state.archiveFolders)) {
           dispatch({ type: 'SET_ARCHIVE_FOLDERS', folders: newFolders })
         }
       } catch (e) {
         console.warn('sync error', e)
       }
     }, 600)
-  }, [session, state.tasks, state.archiveFolders, state.selectedDate])
+  }, [session, syncReady, state.tasks, state.archiveFolders])
+
+  /**
+   * Login reconciliation (F-4): pull the remote first, then decide what wins.
+   * Remote data replaces the local store; an untouched demo seed is discarded
+   * instead of being pushed to (and polluting) a fresh account.
+   */
+  useEffect(() => {
+    const userId = session?.user?.id
+    if (!userId || initialSyncRef.current) return
+    initialSyncRef.current = true
+    let cancelled = false
+    void (async () => {
+      try {
+        const remote = await syncManager.pullRemote(session)
+        if (cancelled) return
+        if (remote.tasks.length > 0) {
+          dispatch({ type: 'REPLACE_ALL_TASKS', tasks: remote.tasks })
+        } else if (isDemoTaskSeed(stateRef.current.tasks)) {
+          dispatch({ type: 'REPLACE_ALL_TASKS', tasks: [] })
+        }
+        if (remote.folders.length > 0) {
+          dispatch({ type: 'SET_ARCHIVE_FOLDERS', folders: remote.folders })
+        } else if (isDemoArchiveSeed(stateRef.current.archiveFolders)) {
+          dispatch({ type: 'SET_ARCHIVE_FOLDERS', folders: [] })
+        }
+      } catch (e) {
+        console.warn('initial sync failed', e)
+      } finally {
+        if (!cancelled) setSyncReady(true)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [session])
 
   useEffect(() => {
     taskRepository.save(state.tasks)
@@ -108,6 +193,24 @@ export function App() {
   }
 
   const handleArchiveFoldersChange = useCallback((folders: ArchiveFolder[]) => {
+    // Diff against the current folders to tombstone anything the archive view
+    // removed, so the deletion propagates to the remote on the next sync (F-5).
+    const prev = stateRef.current.archiveFolders
+    const nextFolderIds = new Set(folders.map((f) => f.id))
+    const removedFolders = prev.filter((f) => !nextFolderIds.has(f.id)).map((f) => f.id)
+    if (removedFolders.length > 0) recordTombstone('archiveFolders', removedFolders)
+
+    const removedItems: string[] = []
+    for (const next of folders) {
+      const before = prev.find((f) => f.id === next.id)
+      if (!before) continue
+      const nextItemIds = new Set(next.items.map((i) => i.id))
+      for (const item of before.items) {
+        if (!nextItemIds.has(item.id)) removedItems.push(item.id)
+      }
+    }
+    if (removedItems.length > 0) recordTombstone('archiveItems', removedItems)
+
     dispatch({ type: 'SET_ARCHIVE_FOLDERS', folders })
   }, [])
 
@@ -195,8 +298,10 @@ export function App() {
       const now = new Date().toISOString()
       const scheduledToToday = state.tasks.filter((t) => t.date === state.selectedDate)
       const completed = scheduledToToday.filter((t) => t.status === 'completed')
-      const rescheduled: Task[] = plan.tasks.map((s: ScheduledTask, i: number) => ({
-        id: interruptedTask.id === scheduledToToday[i % scheduledToToday.length]?.id ? scheduledToToday[i % scheduledToToday.length].id : `replan-${Date.now()}-${i}`,
+      const rescheduled: Task[] = plan.tasks.map((s: ScheduledTask) => ({
+        // Fresh ids for replanned tasks — the old modulo mapping duplicated ids
+        // whenever the plan had more tasks than the day (B-1).
+        id: interruptedTask.title === s.title ? interruptedTask.id : freshId(),
         title: s.title,
         date: state.selectedDate,
         startTime: s.startTime,
@@ -247,29 +352,51 @@ export function App() {
   const handleImport = (file: File) => {
     const reader = new FileReader()
     reader.onload = (e) => {
-      try {
-        const data = JSON.parse(e.target?.result as string)
-        if (data.tasks) taskRepository.save(data.tasks)
-        if (data.archiveFolders) archiveRepository.save(data.archiveFolders)
-        showToast('Data imported')
-        window.location.reload()
-      } catch {
-        showToast('Import failed: invalid file')
+      const backup = parseBackup((e.target?.result as string) ?? '')
+      if (!backup) {
+        showToast(language === 'zh' ? '导入失败：文件格式无效' : 'Import failed: invalid file')
+        return
       }
+      setPendingConfirm({
+        title: language === 'zh'
+          ? `导入 ${backup.tasks.length} 个任务、${backup.archiveFolders.length} 个归档文件夹？当前数据将被覆盖。`
+          : `Import ${backup.tasks.length} tasks and ${backup.archiveFolders.length} archive folders? Current data will be replaced.`,
+        confirmLabel: language === 'zh' ? '导入' : 'Import',
+        destructive: true,
+        run: () => {
+          taskRepository.save(backup.tasks)
+          archiveRepository.save(backup.archiveFolders)
+          showToast(language === 'zh' ? '数据已导入' : 'Data imported')
+          window.location.reload()
+        },
+      })
     }
     reader.readAsText(file)
   }
 
   const handleClearData = () => {
-    localStorage.clear()
-    showToast('All data cleared')
-    window.location.reload()
+    setPendingConfirm({
+      title: language === 'zh'
+        ? '确定要清除所有本地数据吗？此操作不可恢复。'
+        : 'Clear all local data? This cannot be undone.',
+      confirmLabel: language === 'zh' ? '全部清除' : 'Clear All',
+      destructive: true,
+      run: () => {
+        // localStorage.clear() also wipes the tombstone store.
+        localStorage.clear()
+        showToast(language === 'zh' ? '所有数据已清除' : 'All data cleared')
+        window.location.reload()
+      },
+    })
   }
 
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut()
-      showToast('已退出登录')
+      initialSyncRef.current = false
+      setSyncReady(false)
+      exitGuestMode()
+      showToast(language === 'zh' ? '已退出登录' : 'Signed out')
     } catch (e) {
       showToast((e as Error).message)
     }
@@ -286,8 +413,8 @@ export function App() {
     return <div style={{ minHeight: '100vh', background: '#080a0b' }} />
   }
 
-  if (!session) {
-    return <Auth />
+  if (!session && !guestMode) {
+    return <Auth onGuest={enterGuestMode} />
   }
 
   return (
@@ -322,13 +449,23 @@ export function App() {
               onEditTask={() => dispatch({ type: 'SET_HOME_MODE', mode: 'taskEditing' })}
               onCancelEdit={() => dispatch({ type: 'SET_HOME_MODE', mode: 'taskDetail' })}
               onUpdateTask={(task) => dispatch({ type: 'UPDATE_TASK', task })}
-              onDeleteTask={(id) => { dispatch({ type: 'DELETE_TASK', id }); showToast('Task deleted', 'Undo', () => dispatch({ type: 'UNDO_DELETE_TASK' })) }}
+              onDeleteTask={(id) => {
+                recordTombstone('tasks', [id])
+                dispatch({ type: 'DELETE_TASK', id })
+                showToast('Task deleted', 'Undo', () => {
+                  clearTombstones('tasks', [id])
+                  dispatch({ type: 'UNDO_DELETE_TASK', id })
+                })
+              }}
               onCancelAddTask={() => dispatch({ type: 'SET_HOME_MODE', mode: 'running' })}
               onArchiveTask={handleArchiveTask}
               onInterruptionComplete={handleInterruption}
               deletedTasks={state.deletedTasks}
               onOpenTrash={() => dispatch({ type: 'SET_HOME_MODE', mode: 'trash' })}
-              onRestoreTask={(id) => dispatch({ type: 'RESTORE_TASK', id })}
+              onRestoreTask={(id) => {
+                clearTombstones('tasks', [id])
+                dispatch({ type: 'RESTORE_TASK', id })
+              }}
               onPermanentDelete={(id) => dispatch({ type: 'PERMANENT_DELETE', id })}
               onEmptyTrash={() => dispatch({ type: 'EMPTY_TRASH' })}
               onOpenSettings={() => dispatch({ type: 'SET_HOME_MODE', mode: 'settings' })}
@@ -337,6 +474,7 @@ export function App() {
               onClearData={handleClearData}
               archiveCount={state.archiveFolders.reduce((sum, f) => sum + f.items.length, 0)}
               onSignOut={handleSignOut}
+              onSignIn={exitGuestMode}
               userEmail={userEmail}
             />
           </div>
@@ -345,20 +483,36 @@ export function App() {
             aria-hidden={homeActive}
             {...(homeActive ? { inert: true as const } : {})}
           >
-            <ArchiveScreen
-              folders={state.archiveFolders}
-              onFoldersChange={handleArchiveFoldersChange}
-              onBack={() => dispatch({ type: 'SET_VIEW', view: 'home' })}
-              onExport={handleExport}
-              onOpenSettings={() => {
-                dispatch({ type: 'SET_HOME_MODE', mode: 'settings' })
-                dispatch({ type: 'SET_VIEW', view: 'home' })
-              }}
-              reveal={archiveReveal}
-            />
+            <Suspense fallback={null}>
+              <ArchiveScreen
+                folders={state.archiveFolders}
+                onFoldersChange={handleArchiveFoldersChange}
+                onBack={() => dispatch({ type: 'SET_VIEW', view: 'home' })}
+                onExport={handleExport}
+                onOpenSettings={() => {
+                  dispatch({ type: 'SET_HOME_MODE', mode: 'settings' })
+                  dispatch({ type: 'SET_VIEW', view: 'home' })
+                }}
+                reveal={archiveReveal}
+              />
+            </Suspense>
           </div>
         </main>
         <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+        {pendingConfirm ? (
+          <ConfirmModal
+            title={pendingConfirm.title}
+            cancelLabel={language === 'zh' ? '取消' : 'Cancel'}
+            confirmLabel={pendingConfirm.confirmLabel}
+            destructive={pendingConfirm.destructive}
+            onCancel={() => setPendingConfirm(null)}
+            onConfirm={() => {
+              const run = pendingConfirm.run
+              setPendingConfirm(null)
+              run()
+            }}
+          />
+        ) : null}
       </>
     </ErrorBoundary>
   )

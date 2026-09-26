@@ -70,7 +70,7 @@
     border: 1px solid rgba(255,255,255,0.09);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    color: #d6e4dc; font-size: 10px; font-weight: 600;
+    color: #d6e4dc; font-size: 12px; font-weight: 600;
     letter-spacing: 0.02em;
     display: flex; align-items: center; justify-content: center; gap: 5px; z-index: 50;
     cursor: pointer;
@@ -180,10 +180,10 @@
     border: 1px solid rgba(60,220,150,0.2);
   }
   .info .tile svg { width: 34px; height: 34px; }
-  .info .eyebrow { position: absolute; left: 104px; top: 22px; color: #6fdca0; font-size: 10px; font-weight: 600; letter-spacing: 1.5px; }
+  .info .eyebrow { position: absolute; left: 104px; top: 22px; color: #6fdca0; font-size: 12px; font-weight: 600; letter-spacing: 1.5px; }
   .info .h { position: absolute; left: 104px; top: 36px; color: #fff; font-size: 18.5px; font-weight: 700; letter-spacing: -0.01em; }
-  .info .desc { position: absolute; left: 104px; top: 66px; width: 210px; color: #9db3a7; font-size: 11px; line-height: 17px; }
-  .info .meta { position: absolute; left: 18px; bottom: 18px; display: flex; gap: 18px; align-items: center; color: #8aa296; font-size: 11px; }
+  .info .desc { position: absolute; left: 104px; top: 66px; width: 210px; color: #9db3a7; font-size: 12px; line-height: 17px; }
+  .info .meta { position: absolute; left: 18px; bottom: 18px; display: flex; gap: 18px; align-items: center; color: #8aa296; font-size: 12px; }
   .info .meta .divider { width: 1px; height: 14px; background: rgba(255,255,255,0.12); }
   .info .meta span { display: flex; align-items: center; gap: 6px; }
   .info .chev {
@@ -355,7 +355,7 @@
   .sheet .grabber { width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.15); margin: 0 auto 20px; }
   .sheet .sheetTitle { color: #fff; font-size: 20px; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.02em; }
   .sheet .sheetSub { color: #6f8a7c; font-size: 12px; margin-bottom: 24px; }
-  .sheet .label { color: #6fdca0; font-size: 10px; font-weight: 600; letter-spacing: 1.5px; margin-bottom: 8px; }
+  .sheet .label { color: #6fdca0; font-size: 12px; font-weight: 600; letter-spacing: 1.5px; margin-bottom: 8px; }
   .sheet .titleInput {
     width: 100%; height: 48px; border-radius: 14px;
     background: rgba(20,32,26,0.6); border: 1px solid rgba(60,220,150,0.2);
@@ -372,7 +372,7 @@
   .sheet .folderPick .fIcon { width: 32px; height: 32px; border-radius: 8px; background: rgba(14,40,28,0.8); display: flex; align-items: center; justify-content: center; color: var(--arc-green); }
   .sheet .folderPick .fName { flex: 1; color: #d6e4dc; font-size: 13px; font-weight: 600; }
   .sheet .folderPick .fChev { color: #6f8a7c; font-size: 16px; }
-  .sheet .charCount { color: #4a6055; font-size: 11px; text-align: right; margin-bottom: 16px; }
+  .sheet .charCount { color: #8b988f; font-size: 12px; text-align: right; margin-bottom: 16px; }
   .sheet .actions { display: flex; gap: 12px; }
   .sheet .btn { flex: 1; height: 50px; border-radius: 25px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; transition: transform 100ms ease-out; }
   .sheet .btn:active { transform: scale(0.97); }
@@ -423,7 +423,7 @@
   }
   .docItem .docBody { flex: 1; min-width: 0; }
   .docItem .docName { color: #e8f0eb; font-size: 14px; font-weight: 600; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .docItem .docMeta { color: #6f8a7c; font-size: 11px; }
+  .docItem .docMeta { color: #96a49b; font-size: 12px; }
   .docItem .docChev { color: #4a6055; font-size: 16px; flex-shrink: 0; }
 
   .reader {
@@ -458,8 +458,8 @@
     transition: transform 500ms cubic-bezier(0.22,1,0.36,1), opacity 400ms;
   }
   .homeView.exit { transform: translateX(-30%); opacity: 0; pointer-events: none; }
-  .homeGreeting { color: #6fdca0; font-size: 11px; font-weight: 600; letter-spacing: 2px; }
-  .homeDate { color: rgba(255,255,255,0.4); font-size: 12px; margin-top: 6px; }
+  .homeGreeting { color: #6fdca0; font-size: 12px; font-weight: 600; letter-spacing: 2px; }
+  .homeDate { color: rgba(255,255,255,0.62); font-size: 12px; margin-top: 6px; }
   .homeHello { color: #fff; font-size: 32px; font-weight: 800; letter-spacing: -0.02em; margin-top: 18px; line-height: 1.1; }
   .homeHello span { color: #0ee88a; }
 
@@ -470,7 +470,7 @@
     border: 1px solid rgba(60,220,150,0.2);
     box-shadow: 0 16px 40px rgba(0,0,0,0.4);
   }
-  .focusLabel { color: #6fdca0; font-size: 10px; font-weight: 600; letter-spacing: 1.5px; }
+  .focusLabel { color: #6fdca0; font-size: 12px; font-weight: 600; letter-spacing: 1.5px; }
   .focusTitle { color: #fff; font-size: 17px; font-weight: 700; margin-top: 8px; }
   .focusTimer { color: #0ee88a; font-size: 44px; font-weight: 800; letter-spacing: -0.02em; margin-top: 12px; font-variant-numeric: tabular-nums; }
   .focusBtn {
@@ -483,7 +483,7 @@
   }
   .focusBtn:active { transform: scale(0.97); }
 
-  .homeSection { color: rgba(255,255,255,0.4); font-size: 11px; font-weight: 600; letter-spacing: 1.5px; margin-top: 28px; margin-bottom: 12px; }
+  .homeSection { color: rgba(255,255,255,0.62); font-size: 12px; font-weight: 600; letter-spacing: 1.5px; margin-top: 28px; margin-bottom: 12px; }
   .noteRow {
     display: flex; align-items: center; gap: 14px;
     padding: 14px 16px;
@@ -498,7 +498,7 @@
   .noteRow:nth-child(2) .noteDot { background: #f0a040; }
   .noteRow:nth-child(3) .noteDot { background: #6a9bcc; }
   .noteName { color: #e0ece5; font-size: 13px; font-weight: 500; flex: 1; }
-  .noteTime { color: rgba(255,255,255,0.3); font-size: 11px; }
+  .noteTime { color: rgba(255,255,255,0.6); font-size: 12px; }
 
   .archiveCta {
     margin-top: auto;
@@ -518,7 +518,7 @@
   }
   .archiveCta .txt { flex: 1; }
   .archiveCta .txt .t { color: #fff; font-size: 14px; font-weight: 700; }
-  .archiveCta .txt .s { color: rgba(255,255,255,0.4); font-size: 11px; margin-top: 2px; }
+  .archiveCta .txt .s { color: rgba(255,255,255,0.62); font-size: 12px; margin-top: 2px; }
   .archiveCta .arrow { color: #0ee88a; font-size: 20px; }
   @media (prefers-reduced-motion: reduce) {
     .card, .card.sel, .card:not(.sel) { transition: opacity 200ms ease !important; transform: none !important; }
@@ -546,4 +546,127 @@
     display: flex; align-items: center; justify-content: center;
     overflow: hidden;
     background: radial-gradient(circle at 60% 28%, rgb(37 61 46 / 45%), transparent 55%), linear-gradient(155deg, #080d0a 0%, #0b0f0d 48%, #050706 100%);
+  }
+
+  /* ===========================================================================
+     R-05 landscape phones (orientation: landscape, height < 500px)
+
+     The archive is authored on a fixed 402x874 canvas whose every element is
+     absolutely positioned, and JS writes an inline `transform: scale()` on
+     .phone. A tall phone composition cannot be useful in a 390px-tall window,
+     so in landscape we:
+       1. neutralise the JS scale (!important beats the non-important inline
+          value) and let .phone fill the real viewport;
+       2. rearrange the absolute pieces into two columns - the folder deck
+          (stream / arc / flip button) on the left, info + actions on the right;
+       3. the only JS-driven coordinates are the cards' left (relative to
+          .stream, so moving .stream moves the deck for free) and the flip
+          button's arc position (left/top in canvas space) - that one is
+          realigned with a CSS translate; hit-testing follows the transform.
+     =========================================================================== */
+  @media (orientation: landscape) and (max-height: 500px) {
+    .phone {
+      width: 100%;
+      height: 100%;
+      transform: none !important;
+    }
+
+    /* --- header ------------------------------------------------------------ */
+    .back { left: 14px; top: 8px; width: 38px; height: 38px; }
+    .title { left: 62px; top: 9px; font-size: 20px; line-height: 38px; }
+    .signal { left: auto; right: 56px; top: 10px; width: 60px; height: 34px; border-radius: 17px; }
+    .more { left: auto; right: 14px; top: 13px; }
+    .menuPopup { left: auto; right: 14px; top: 46px; width: 168px; }
+    .toast { top: 54px; }
+
+    /* --- left column: folder deck ----------------------------------------- */
+    /* active card centre = stream.left(0-ish) + CENTER_X(155) + 45 ~= 170.
+       The deck is authored at 90x318 per card, so scale the whole stream to
+       keep it inside the ~320px left column; card hit areas follow the
+       transform and the drag delta math is viewport based. */
+    .stream { left: -30px; top: 56px; height: 330px; transform: scale(0.78); transform-origin: top left; }
+    .arc { left: -45px; top: 56px; width: 345px; height: 39px; }
+    /* JS writes canvas-space left/top (arc sat at y:202, stream at y:202).
+       With transform-origin at the element centre, the visual centre of the
+       button is origin + translate; solve translate so it lands on the
+       scaled arc: x' = 0.78*178.4 - 69 ~= 109 ; y' = 218.5 - 150 ~= 69 */
+    .flipBtn { transform: translate(-69px, -150px) scale(0.78); }
+    .flipBtn:active { transform: translate(-69px, -150px) scale(0.78) scale(0.9); }
+
+    /* --- right column: chips / info / dots / input ------------------------ */
+    .chip { top: 52px; height: 32px; border-radius: 16px; }
+    .chip.folders { left: auto; right: 258px; width: 92px; }
+    .chip.newfolder { left: auto; right: 150px; width: 100px; }
+    .chip.small { left: auto; right: 58px; width: 84px; }
+    .chip.search { left: auto; right: 16px; }
+
+    .info {
+      left: 324px; right: 16px; top: 96px;
+      width: auto; height: 170px; border-radius: 22px;
+    }
+    .info .tile { left: 14px; top: 14px; width: 52px; height: 52px; border-radius: 14px; }
+    .info .tile svg { width: 26px; height: 26px; }
+    .info .eyebrow { left: 78px; top: 14px; }
+    .info .h { left: 78px; top: 30px; font-size: 17px; }
+    .info .desc { left: 78px; top: 56px; width: auto; right: 16px; }
+    .info .meta { left: 14px; bottom: 12px; }
+
+    .dots { left: 324px; right: 16px; top: 274px; width: auto; }
+
+    .input {
+      left: 324px; right: 16px; top: auto; bottom: 12px;
+      width: auto; height: 60px; border-radius: 30px;
+    }
+    .input .clip { width: 44px; height: 44px; }
+    .input .mic { width: 48px; height: 48px; }
+
+    /* --- full-screen overlays / sheets ------------------------------------ */
+    .searchOverlay { width: 100%; height: 100%; padding: 48px 24px 20px; }
+
+    .sheet {
+      left: 0; width: 100%; height: 100%;
+      border-radius: 0;
+      padding: 10px 28px 14px;
+    }
+    .sheet .grabber { display: none; }
+    .sheet .sheetSub { margin-bottom: 12px; }
+    .sheet .folderPick { margin-bottom: 12px; }
+    .sheet .charCount { margin-bottom: 10px; }
+    .sheet .newFolderRow { margin-bottom: 14px; }
+
+    .slideover { width: 100%; height: 100%; }
+    .slideover .soHeader { padding: 10px 20px 12px; }
+    .slideover .soList { padding: 0 20px 20px; }
+    .docItem { padding: 12px 14px; margin-bottom: 8px; }
+
+    .reader { width: 100%; height: 100%; }
+    .reader .rHeader { padding: 10px 20px 12px; }
+    .reader .rBody { padding: 14px 24px 24px; }
+  }
+
+  /* shortest landscape panels (e.g. 740x360): tighten the vertical rhythm */
+  @media (orientation: landscape) and (max-height: 380px) {
+    .back { top: 6px; }
+    .title { top: 7px; }
+    .signal { top: 8px; }
+    .more { top: 11px; }
+
+    .stream { top: 44px; }
+    .arc { top: 44px; }
+    .flipBtn { transform: translate(-69px, -162px) scale(0.78); }
+    .flipBtn:active { transform: translate(-69px, -162px) scale(0.78) scale(0.9); }
+
+    .chip { top: 44px; }
+    .info { top: 86px; height: 142px; }
+    .dots { top: 236px; }
+    .input { bottom: 8px; height: 52px; border-radius: 26px; }
+    .input .clip { width: 40px; height: 40px; }
+    .input .mic { width: 44px; height: 44px; }
+  }
+
+  /* narrow landscape (e.g. 667px wide): compact chips so the row fits */
+  @media (orientation: landscape) and (max-height: 500px) and (max-width: 700px) {
+    .chip.folders { right: 243px; width: 96px; }
+    .chip.newfolder { right: 144px; width: 92px; }
+    .chip.small { right: 57px; width: 80px; }
   }

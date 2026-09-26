@@ -1,9 +1,16 @@
-.dock { position: absolute; bottom: calc(32px + env(safe-area-inset-bottom, 0px)); left: var(--page-gutter, 30px); right: var(--page-gutter, 30px); display: flex; gap: 19px; align-items: center; justify-content: space-between; }
-.dock > :first-child { min-width: 0; flex: 1; }
-@media (min-width: 431px) { .dock { bottom: 55px; } }
+.dock { position: relative; flex: 0 0 auto; margin: 0 var(--page-gutter, 30px) calc(32px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 19px; align-items: center; justify-content: space-between; }
+/* The absolutely-positioned hint is the DOM first-child, so the flexible
+   slot must target the button itself, not .dock:first-child. */
+.addTask { flex: 1 1 auto; }
+/* Anchor from the bottom edge: when the hint wraps to two lines on ≤360px
+   screens it grows upward instead of sliding under the dock button. */
+.hint { position: absolute; top: auto; bottom: calc(100% + 8px); left: 27px; margin: 0; color: #9db3a7; font-size: 12px; font-weight: 500; letter-spacing: 0.01em; pointer-events: none; animation: holdHintIn 600ms ease both; }
+@keyframes holdHintIn { from { opacity: 0; } }
+@media (min-width: 431px) { .dock { margin-bottom: 55px; } }
+@media (max-height: 700px) { .dock { margin-bottom: calc(16px + env(safe-area-inset-bottom, 0px)); } }
 .addTask, .pause { position: relative; height: 66px; padding: 0; color: #b9c3bd; background: linear-gradient(120deg, rgba(20,32,26,0.8), rgba(8,14,10,0.9)); border: 1px solid rgba(255,255,255,0.12); box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 12px 32px -12px rgba(0,0,0,0.4); backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%); touch-action: manipulation; -webkit-touch-callout: none; transition: transform 160ms var(--ease-calm), border-color 200ms ease, background 240ms ease, box-shadow 240ms ease; will-change: transform; cursor: pointer; }
 .addTask::after, .pause::after { content: ''; position: absolute; inset: 1px; pointer-events: none; border-top: 1px solid rgb(255 255 255 / 7%); border-radius: inherit; }
-.addTask { width: 248px; display: flex; align-items: center; gap: 14px; padding-left: 26px; border-radius: 33px; font-size: 15px; font-weight: 500; text-align: left; }
+.addTask { min-width: 0; display: flex; align-items: center; gap: 14px; padding-left: 26px; border-radius: 33px; font-size: 15px; font-weight: 500; text-align: left; }
 .addTask img { width: 20px; height: 20px; opacity: 0.78; }
 .pauseGroup { position: relative; width: 66px; height: 66px; flex: 0 0 66px; }
 .pause { width: 66px; display: grid; place-items: center; border-radius: 50%; transition: transform 160ms var(--ease-calm), border-color 200ms ease, box-shadow 240ms ease; }
@@ -19,13 +26,25 @@
 .resume { border-color: rgb(51 214 112 / 32%); box-shadow: inset 0 1px 0 rgb(255 255 255 / 9%), 0 16px 32px -16px rgb(0 0 0 / 80%), 0 0 18px rgb(51 214 112 / 18%); }
 .resume span { width: 0; height: 0; transform: translateX(2px); border-top: 10px solid transparent; border-bottom: 10px solid transparent; border-left: 15px solid #47db7a; filter: drop-shadow(0 0 6px rgb(51 214 112 / 25%)); }
 .resume span::before, .resume span::after { display: none; }
-.pausedLabel { position: absolute; right: 0; bottom: 68px; width: 60px; color: #87968f; font-size: 11px; font-weight: 600; text-align: center; }
+.pausedLabel { position: absolute; right: 0; bottom: 68px; width: 60px; color: #9db3a7; font-size: 12px; font-weight: 600; text-align: center; }
 
 .holding { transform: scale(0.93); border-color: rgb(51 214 112 / 50%); }
 .holding::before { content: ''; position: absolute; inset: -1px; z-index: 2; pointer-events: none; border: 2px solid transparent; border-top-color: #47db7a; border-radius: inherit; animation: holdProgress 500ms linear both; }
 
-.replanning { width: 333px; height: 60px; display: flex; align-items: center; justify-content: center; gap: 12px; color: #b9c8bf; background: rgb(9 33 19 / 72%); border: 1px solid rgb(51 214 112 / 26%); border-radius: 33px; box-shadow: var(--shadow-glass); font-size: 14px; font-weight: 600; }
+.replanning { width: 100%; height: 60px; display: flex; align-items: center; justify-content: center; gap: 12px; color: #b9c8bf; background: rgb(9 33 19 / 72%); border: 1px solid rgb(51 214 112 / 26%); border-radius: 33px; box-shadow: var(--shadow-glass); font-size: 14px; font-weight: 600; }
 .replanning i { width: 9px; height: 9px; border-radius: 50%; background: #47db7a; box-shadow: 0 0 10px rgb(51 219 112 / 45%); animation: replanPulse 700ms ease-in-out infinite alternate; }
 
 @keyframes holdProgress { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
 @keyframes replanPulse { to { opacity: 0.35; transform: scale(0.7); } }
+
+/* R-05 phone landscape: slimmer dock, one-line hint, reclaim stage height.
+   Must sit after the base .addTask/.pause/.pauseGroup rules above (equal
+   specificity, source order decides). */
+@media (orientation: landscape) and (max-height: 500px) {
+  .dock { margin-bottom: calc(8px + env(safe-area-inset-bottom, 0px)); gap: 14px; }
+  .addTask, .pause { height: 52px; }
+  .pauseGroup { width: 52px; height: 52px; flex-basis: 52px; }
+  .addTask { padding-left: 20px; }
+  .hint { left: 20px; white-space: nowrap; }
+  .pausedLabel { bottom: 54px; }
+}

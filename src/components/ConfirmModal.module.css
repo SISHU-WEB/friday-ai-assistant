@@ -1,5 +1,18 @@
 .backdrop { position: absolute; inset: 0; z-index: 30; display: grid; place-items: center; padding: 30px; background: rgb(0 0 0 / 64%); backdrop-filter: blur(8px); animation: fadeIn var(--duration-fast) ease both; }
-.dialog { width: 290px; padding: 24px; color: #dbe5e0; background: linear-gradient(145deg, rgb(29 42 34 / 96%), rgb(7 12 9 / 96%)); border: 1px solid rgb(184 255 209 / 22%); border-radius: 26px; box-shadow: 0 28px 60px rgb(0 0 0 / 60%), inset 0 1px rgb(255 255 255 / 7%); }
+.dialog { width: min(290px, 100%); padding: 24px; color: #dbe5e0; background: linear-gradient(145deg, rgb(29 42 34 / 96%), rgb(7 12 9 / 96%)); border: 1px solid rgb(184 255 209 / 22%); border-radius: 26px; box-shadow: 0 28px 60px rgb(0 0 0 / 60%), inset 0 1px rgb(255 255 255 / 7%); }
+/* R-04: ultra-narrow tier keeps the 16px gutter (100% - 32px). */
+@media (max-width: 359px) {
+  .backdrop { padding: 16px; }
+}
+/* R-05 phone landscape: smaller outer padding; keep the dialog centered. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .backdrop { padding: 14px; }
+  .dialog { padding: 18px 20px; }
+  .dialog h2 { margin-bottom: 16px; }
+}
+@supports (place-items: safe center) {
+  .backdrop { place-items: safe center; }
+}
 .signal { display: block; width: 8px; height: 8px; margin-bottom: 16px; background: #47db7a; border-radius: 50%; box-shadow: 0 0 10px rgb(51 214 112 / 38%); }
 .dialog h2 { margin: 0 0 24px; font-size: 20px; font-weight: 650; }
 .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }

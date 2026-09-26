@@ -33,6 +33,7 @@ export function TaskDetail({ task, onEdit, onDelete, onArchive }: TaskDetailProp
       <div className={styles.actions}>
         <button className={styles.delete} type="button" onClick={onDelete}>Delete</button>
         <button className={styles.edit} type="button" onClick={onEdit}>Edit task</button>
+        <button className={styles.archive} type="button" onClick={() => onArchive(task)}>Archive</button>
       </div>
     </section>
   )

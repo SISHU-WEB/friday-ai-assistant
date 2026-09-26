@@ -12,6 +12,7 @@ import { TaskDetail } from './TaskDetail'
 import { TaskEditor } from './TaskEditor'
 import { BottomControls } from './BottomControls'
 import { TaskCarousel } from './TaskCarousel'
+import { InterruptionPanel, type InterruptionResult } from './InterruptionPanel'
 import { TrashPanel } from '../../components/TrashPanel'
 import { SettingsPanel } from '../../components/SettingsPanel'
 import styles from './HomeScreen.module.css'
@@ -28,6 +29,7 @@ interface HomeScreenProps {
   onPause: () => void
   onPauseLongPress: () => void
   onTaskSubmit: (task: Task) => void
+  onTaskBatchSubmit?: (tasks: Task[]) => void
   onSelectedDateChange: (date: string) => void
   onOpenSchedule: () => void
   onCloseSchedule: () => void
@@ -41,7 +43,7 @@ interface HomeScreenProps {
   onDeleteTask: (id: string) => void
   onCancelAddTask: () => void
   onArchiveTask: (task: Task) => void
-  onInterruptionComplete: (transcript: string) => void
+  onInterruptionComplete: (result: InterruptionResult) => void
   deletedTasks: Task[]
   onOpenTrash: () => void
   onRestoreTask: (id: string) => void
@@ -52,9 +54,12 @@ interface HomeScreenProps {
   onImport: (file: File) => void
   onClearData: () => void
   archiveCount: number
+  onSignOut?: () => void
+  onSignIn?: () => void
+  userEmail?: string
 }
 
-export function HomeScreen({ tasks, mode, selectedDate, activeTaskIndex, onActiveTaskChange, onOpenArchive, onAddTask, onAddTaskLongPress, onPause, onPauseLongPress, onTaskSubmit, onSelectedDateChange, onOpenSchedule, onCloseSchedule, selectedTask, onOpenTask, onOpenTaskFromSchedule, onCloseTask, onEditTask, onCancelEdit, onUpdateTask, onDeleteTask, onCancelAddTask, onInterruptionComplete, onArchiveTask, deletedTasks, onOpenTrash, onRestoreTask, onPermanentDelete, onEmptyTrash, onOpenSettings, onExport, onImport, onClearData, archiveCount }: HomeScreenProps) {
+export function HomeScreen({ tasks, mode, selectedDate, activeTaskIndex, onActiveTaskChange, onOpenArchive, onAddTask, onAddTaskLongPress, onPause, onPauseLongPress, onTaskSubmit, onTaskBatchSubmit, onSelectedDateChange, onOpenSchedule, onCloseSchedule, selectedTask, onOpenTask, onOpenTaskFromSchedule, onCloseTask, onEditTask, onCancelEdit, onUpdateTask, onDeleteTask, onCancelAddTask, onInterruptionComplete, onArchiveTask, deletedTasks, onOpenTrash, onRestoreTask, onPermanentDelete, onEmptyTrash, onOpenSettings, onExport, onImport, onClearData, archiveCount, onSignOut, onSignIn, userEmail }: HomeScreenProps) {
   const [addTaskDirty, setAddTaskDirty] = useState(false)
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -82,6 +87,7 @@ export function HomeScreen({ tasks, mode, selectedDate, activeTaskIndex, onActiv
   }
   const selectedTasks = tasks.filter((task) => task.date === selectedDate)
   const showClose = mode === 'addTaskText' || mode === 'dailySchedule'
+  const compactHeader = mode === 'addTaskText' || mode === 'dailySchedule' || mode === 'taskDetail' || mode === 'taskEditing'
 
   const closeCurrentMode = () => {
     if (mode === 'addTaskText') {
@@ -107,7 +113,7 @@ export function HomeScreen({ tasks, mode, selectedDate, activeTaskIndex, onActiv
   return (
     <section className={styles.screen} aria-label={`Friday Home — ${modeNames[mode]}`}>
       <div className={styles.ambientGlow} aria-hidden="true" />
-      <Header selectedDate={selectedDate} onSelectedDateChange={onSelectedDateChange} onOpenSchedule={onOpenSchedule} onOpenArchive={onOpenArchive} onOpenTrash={onOpenTrash} trashCount={deletedTasks.length} onOpenSettings={onOpenSettings} />
+      <Header compact={compactHeader} selectedDate={selectedDate} onSelectedDateChange={onSelectedDateChange} onOpenSchedule={onOpenSchedule} onOpenArchive={onOpenArchive} onOpenTrash={onOpenTrash} trashCount={deletedTasks.length} onOpenSettings={onOpenSettings} />
       {mode === 'settings' ? (
         <SettingsPanel
           taskCount={tasks.length}
@@ -116,6 +122,9 @@ export function HomeScreen({ tasks, mode, selectedDate, activeTaskIndex, onActiv
           onImport={onImport}
           onClearData={onClearData}
           onClose={onCloseTask}
+          onSignOut={onSignOut}
+          onSignIn={onSignIn}
+          userEmail={userEmail}
         />
       ) : null}
       {mode === 'trash' ? (
@@ -127,32 +136,50 @@ export function HomeScreen({ tasks, mode, selectedDate, activeTaskIndex, onActiv
           onClose={onCloseTask}
         />
       ) : null}
-      {showClose ? <CloseButton onClose={closeCurrentMode} label="Close" /> : null}
-      {mode === 'addTaskText' ? (
-        <AddTaskForm selectedDate={selectedDate} onSubmit={onTaskSubmit} onDirtyChange={setAddTaskDirty} />
-      ) : mode === 'addTaskVoice' ? (
+      <div className={styles.stage}>
+        {showClose ? <CloseButton onClose={closeCurrentMode} label="Close" /> : null}
+        {mode === 'addTaskText' ? (
+          <AddTaskForm
+            selectedDate={selectedDate}
+            onSubmit={onTaskSubmit}
+            onSubmitBatch={onTaskBatchSubmit}
+            existingTasks={tasks.filter((t) => t.date === selectedDate)}
+            onDirtyChange={setAddTaskDirty}
+          />
+        ) : mode === 'taskDetail' && selectedTask ? (
+          <>
+            <button
+              type="button"
+              onClick={onCloseTask}
+              aria-label="Close task details"
+              style={{ position: 'absolute', inset: 0, zIndex: 5, padding: 0, background: 'transparent', border: 'none', cursor: 'default' }}
+            />
+            <TaskDetail task={selectedTask} onEdit={onEditTask} onDelete={() => setShowDeleteConfirm(true)} onArchive={onArchiveTask} />
+          </>
+        ) : mode === 'taskEditing' && selectedTask ? (
+          <TaskEditor task={selectedTask} onSave={onUpdateTask} onCancel={onCancelEdit} onDelete={() => setShowDeleteConfirm(true)} />
+        ) : mode === 'dailySchedule' ? (
+          <DailySchedule
+            selectedDate={selectedDate}
+            tasks={selectedTasks}
+            onSelectedDateChange={onSelectedDateChange}
+            onOpenTask={onOpenTaskFromSchedule}
+          />
+        ) : selectedTasks.length === 0 ? (
+          <EmptyDayState />
+        ) : (
+          <TaskCarousel tasks={selectedTasks} activeTaskIndex={Math.min(activeTaskIndex, selectedTasks.length - 1)} onActiveTaskChange={onActiveTaskChange} onOpenTask={onOpenTask} />
+        )}
+      </div>
+      {mode === 'addTaskVoice' ? (
         <VoiceInput selectedDate={selectedDate} onSubmit={onTaskSubmit} onCancel={onCancelAddTask} />
-      ) : mode === 'pauseVoiceInput' ? (
-        <VoiceInput selectedDate={selectedDate} purpose="interruption" onInterruptionComplete={onInterruptionComplete} onCancel={onCancelAddTask} />
-      ) : mode === 'taskDetail' && selectedTask ? (
-        <>
-          <div onClick={onCloseTask} style={{ position: 'absolute', inset: 0, zIndex: 5 }} aria-hidden="true" />
-          <TaskDetail task={selectedTask} onEdit={onEditTask} onDelete={() => setShowDeleteConfirm(true)} onArchive={onArchiveTask} />
-        </>
-      ) : mode === 'taskEditing' && selectedTask ? (
-        <TaskEditor task={selectedTask} onSave={onUpdateTask} onCancel={onCancelEdit} onDelete={() => setShowDeleteConfirm(true)} />
-      ) : mode === 'dailySchedule' ? (
-        <DailySchedule
-          selectedDate={selectedDate}
-          tasks={selectedTasks}
-          onSelectedDateChange={onSelectedDateChange}
-          onOpenTask={onOpenTaskFromSchedule}
+      ) : null}
+      {mode === 'pauseVoiceInput' ? (
+        <InterruptionPanel
+          onComplete={onInterruptionComplete}
+          onCancel={onCancelAddTask}
         />
-      ) : selectedTasks.length === 0 ? (
-        <EmptyDayState />
-      ) : (
-        <TaskCarousel tasks={selectedTasks} activeTaskIndex={Math.min(activeTaskIndex, selectedTasks.length - 1)} onActiveTaskChange={onActiveTaskChange} onOpenTask={onOpenTask} />
-      )}
+      ) : null}
       <BottomControls
         mode={mode}
         onAddTask={onAddTask}

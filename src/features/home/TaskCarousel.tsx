@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent, type WheelEvent } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
 import type { Task } from '../../types/task'
 import { TaskCard } from './TaskCard'
 import styles from './TaskCarousel.module.css'
@@ -43,6 +43,27 @@ export function TaskCarousel({ activeTaskIndex, onActiveTaskChange, tasks, onOpe
     const nextIndex = Math.max(0, Math.min(tasks.length - 1, activeTaskIndex + direction))
     onActiveTaskChange(nextIndex)
   }
+
+  // React registers wheel listeners as passive, so preventDefault() inside
+  // onWheel is ignored (C-2). Attach a native non-passive listener instead.
+  const moveRef = useRef(move)
+  moveRef.current = move
+  const carouselRef = useRef<HTMLElement | null>(null)
+
+  useEffect(() => {
+    const el = carouselRef.current
+    if (!el) return
+    const handleWheel = (event: WheelEvent) => {
+      const horizontalDelta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.shiftKey ? event.deltaY : 0
+      if (Math.abs(horizontalDelta) < 12 || wheelLocked.current) return
+      event.preventDefault()
+      wheelLocked.current = true
+      moveRef.current(horizontalDelta > 0 ? 1 : -1)
+      window.setTimeout(() => { wheelLocked.current = false }, 420)
+    }
+    el.addEventListener('wheel', handleWheel, { passive: false })
+    return () => el.removeEventListener('wheel', handleWheel)
+  }, [])
 
   const scheduleDragFrame = (value: number) => {
     pendingX.current = value
@@ -114,19 +135,11 @@ export function TaskCarousel({ activeTaskIndex, onActiveTaskChange, tasks, onOpe
     setDragX(0)
   }
 
-  const handleWheel = (event: WheelEvent<HTMLElement>) => {
-    const horizontalDelta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.shiftKey ? event.deltaY : 0
-    if (Math.abs(horizontalDelta) < 12 || wheelLocked.current) return
-    event.preventDefault()
-    wheelLocked.current = true
-    move(horizontalDelta > 0 ? 1 : -1)
-    window.setTimeout(() => { wheelLocked.current = false }, 420)
-  }
-
   const progress = dragX / SWIPE_DISTANCE
 
   return (
     <section
+      ref={carouselRef}
       className={`${styles.carousel} ${isDragging ? styles.dragging : ''}`}
       aria-label="Today's task carousel"
       aria-roledescription="carousel"
@@ -139,7 +152,6 @@ export function TaskCarousel({ activeTaskIndex, onActiveTaskChange, tasks, onOpe
       onPointerMove={handlePointerMove}
       onPointerUp={finishDrag}
       onPointerCancel={finishDrag}
-      onWheel={handleWheel}
     >
       {tasks.map((task, index) => {
         const restingOffset = relativeOffset(index)

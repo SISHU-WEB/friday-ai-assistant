@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
+import { createContext, useContext, useState, type ReactNode } from 'react'
 
 type Language = 'en' | 'zh'
 
@@ -62,6 +62,10 @@ const translations = {
     orContinueWith: 'Or continue with',
     loginFailed: 'Login failed. Please check your credentials.',
     signupFailed: 'Signup failed. Please try again.',
+    minutes: 'min',
+    interruptionReason: 'Interruption reason',
+    estimatedReturn: 'Estimated return',
+    submit: 'Submit',
   },
   zh: {
     appName: 'Friday',
@@ -122,6 +126,10 @@ const translations = {
     orContinueWith: '或继续使用',
     loginFailed: '登录失败，请检查你的账号密码',
     signupFailed: '注册失败，请重试',
+    minutes: '分钟',
+    interruptionReason: '打断事由',
+    estimatedReturn: '预计回归时间',
+    submit: '提交',
   },
 }
 
@@ -134,12 +142,15 @@ interface I18nContextType {
 const I18nContext = createContext<I18nContextType | null>(null)
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<Language>('en')
-
-  useEffect(() => {
-    const saved = localStorage.getItem('friday-language') as Language
-    if (saved) setLanguageState(saved)
-  }, [])
+  // Synchronous init so the first frame already matches the saved language
+  // (no English flash for zh users, U-4).
+  const [language, setLanguageState] = useState<Language>(() => {
+    try {
+      return localStorage.getItem('friday-language') === 'zh' ? 'zh' : 'en'
+    } catch {
+      return 'en'
+    }
+  })
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang)

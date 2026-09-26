@@ -30,16 +30,16 @@
 .previewHeading { position: absolute; top: 54px; right: 7px; width: 40px; display: flex; flex-direction: column; align-items: center; text-align: center; }
 .previewHeading img { width: 19px; height: 19px; margin-bottom: 11px; opacity: 0.8; }
 .previewHeading h2 { width: 48px; margin: 0; color: #bcc5bf; font-size: 12px; font-weight: 550; line-height: 1.15; }
-.previewHeading p { width: max-content; margin: 8px 0 0; color: var(--color-text-muted); font-size: 10px; font-weight: 500; }
-.categoryPill { position: absolute; right: 10px; bottom: 26px; display: grid; min-width: 50px; height: 25px; place-items: center; padding: 0 8px; color: #859089; background: rgb(225 255 235 / 4%); border: 1px solid rgb(229 255 237 / 9%); border-radius: var(--radius-pill); font-size: 10px; font-weight: 500; }
+.previewHeading p { width: max-content; margin: 8px 0 0; color: var(--color-text-muted); font-size: 12px; font-weight: 500; }
+.categoryPill { position: absolute; right: 10px; bottom: 26px; display: grid; min-width: 50px; height: 28px; place-items: center; padding: 0 8px; color: #a3b0a8; background: rgb(225 255 235 / 4%); border: 1px solid rgb(229 255 237 / 9%); border-radius: var(--radius-pill); font-size: 12px; font-weight: 500; }
 .stack { inset: 0; width: 100%; height: 100%; padding: 0; contain: layout paint; }
 .fullContent { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; padding: 49px 24px 30px; opacity: var(--active-mix); transition: opacity 80ms linear; }
 .fullContent h2 { margin: 0; font-size: 26px; font-weight: 700; line-height: 1.12; letter-spacing: -0.6px; }
 .previewContent { position: absolute; top: 51px; right: 13px; width: 48px; text-align: center; opacity: calc(1 - var(--active-mix)); transition: opacity 80ms linear; }
 .previewContent img { width: 19px; height: 19px; margin-bottom: 10px; opacity: 0.78; }
 .previewContent h2 { width: 48px; margin: 0; overflow: hidden; color: #bcc5bf; font-size: 12px; font-weight: 550; line-height: 1.15; text-overflow: ellipsis; }
-.previewContent p { width: max-content; margin: 8px auto 0; color: var(--color-text-muted); font-size: 8px; }
-.previewContent span { position: absolute; top: 256px; right: -3px; display: grid; min-width: 50px; height: 25px; place-items: center; padding: 0 8px; color: #859089; background: rgb(225 255 235 / 4%); border: 1px solid rgb(229 255 237 / 9%); border-radius: var(--radius-pill); font-size: 8px; }
+.previewContent p { width: max-content; margin: 8px auto 0; color: var(--color-text-muted); font-size: 12px; }
+.previewContent span { position: absolute; top: 256px; right: -3px; display: grid; min-width: 50px; height: 28px; place-items: center; padding: 0 8px; color: #a3b0a8; background: rgb(225 255 235 / 4%); border: 1px solid rgb(229 255 237 / 9%); border-radius: var(--radius-pill); font-size: 12px; }
 @media (prefers-reduced-motion: reduce) { .fullContent, .previewContent { transition: none; } }
 
 .previewLeft {

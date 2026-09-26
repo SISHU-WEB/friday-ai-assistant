@@ -1,15 +1,16 @@
 .form {
   position: absolute;
-  top: 232px;
+  top: 60px;
   left: var(--page-gutter, 30px);
   right: var(--page-gutter, 30px);
+  bottom: 24px;
   z-index: 6;
   min-width: 0;
-  height: 520px;
   display: flex;
   flex-direction: column;
   gap: 10px;
   padding: 24px;
+  overflow-y: auto;
   color: #dbe5e0;
   background: linear-gradient(98deg, rgb(28 38 33 / 82%), rgb(14 19 17 / 72%) 52%, rgb(6 8 7 / 88%));
   border: 1px solid rgb(184 255 209 / 30%);
@@ -23,31 +24,39 @@
 .form fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
 .form legend, .fieldLabel { display: block; margin: 0 0 10px; color: #808f85; font-size: 13px; font-weight: 650; }
 
-.segmented { display: flex; height: 36px; align-items: center; gap: 8px; }
+.segmented { display: flex; min-height: 36px; flex-wrap: wrap; align-items: center; gap: 8px; }
 .segmented button, .methodSelector button { height: 34px; padding: 0 12px; color: #dbe5e0; background: rgb(18 25 21 / 46%); border: 1px solid rgb(184 255 209 / 20%); border-radius: 17px; font-size: 12px; font-weight: 500; }
 .segmented .selected, .methodSelector .selected { color: #47db7a; background: rgb(9 33 19 / 82%); border-color: rgb(51 214 112 / 36%); }
 
 .fieldLabel { margin-top: 0; }
-.descriptionField { width: 100%; height: 62px; display: flex; align-items: center; gap: 12px; padding: 0 21px; background: rgb(12 18 14 / 72%); border: 1px solid rgb(184 255 209 / 25%); border-radius: 30px; }
+.descriptionField { position: relative; width: 100%; height: 62px; display: flex; align-items: center; gap: 12px; padding: 0 21px; background: rgb(12 18 14 / 72%); border: 1px solid rgb(184 255 209 / 25%); border-radius: 30px; }
 .descriptionField:focus-within { border-color: rgb(51 214 112 / 45%); box-shadow: 0 0 0 3px rgb(51 214 112 / 6%); }
 .descriptionField img { width: 20px; height: 20px; opacity: 0.75; }
 .descriptionField input { width: 100%; min-width: 0; padding: 8px 0; color: #dbe5e0; background: transparent; border: 0; outline: 0; font-size: 16px; }
-.descriptionField input::placeholder { color: #718078; }
+.descriptionField input::placeholder { color: #8b988f; }
 
 .timeSection legend { margin-bottom: 10px; }
-.methodSelector { display: flex; height: 28px; gap: 6px; margin-bottom: 10px; }
-.methodSelector button { height: 28px; padding: 0 11px; border-radius: 14px; font-size: 11px; }
+.methodSelector { display: flex; min-height: 28px; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.methodSelector button { height: 28px; padding: 0 11px; border-radius: 14px; font-size: 12px; }
 .timeInputs { height: 40px; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 0 12px; background: rgb(12 18 14 / 62%); border: 1px solid rgb(184 255 209 / 22%); border-radius: 20px; }
-.timeInputs label { display: flex; align-items: center; gap: 5px; color: #8c9b92; font-size: 10px; }
+.timeInputs label { display: flex; align-items: center; gap: 5px; color: #a3b0a8; font-size: 12px; }
 .timeInputs input { width: 73px; padding: 4px; color: #dbe5e0; color-scheme: dark; background: transparent; border: 0; outline: 0; font-size: 12px; }
 .timeInputs span { color: #47db7a; font-size: 12px; }
 
-.wheelPreview { height: 76px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; margin-top: 10px; color: #808f85; background: rgb(9 14 11 / 66%); border: 1px solid rgb(184 255 209 / 18%); border-radius: 20px; font-size: 10px; overflow: hidden; }
+.wheelPreview { height: 76px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; margin-top: 10px; color: #808f85; background: rgb(9 14 11 / 66%); border: 1px solid rgb(184 255 209 / 18%); border-radius: 20px; font-size: 12px; overflow: hidden; }
 .wheelPreview strong { width: calc(100% - 28px); height: 26px; display: grid; place-items: center; color: #47db7a; background: rgb(9 33 19 / 82%); border: 1px solid rgb(51 214 112 / 32%); border-radius: 13px; font-size: 12px; }
-.noTime { margin: 8px 0 0; color: #78877e; font-size: 12px; }
+.noTime { margin: 8px 0 0; color: #96a49b; font-size: 12px; }
 
 .confirm { width: 100%; height: 44px; flex: 0 0 44px; margin-top: auto; color: #47db7a; background: rgb(9 33 19 / 82%); border: 1px solid rgb(51 214 112 / 32%); border-radius: 22px; font-size: 13px; font-weight: 650; }
 .confirm:disabled { opacity: 0.42; }
+
+@media (max-width: 380px) {
+  /* Give the native time control enough room for digits + clock icon; wrap
+     to two centered rows instead of clipping "End 10:30". Height must grow
+     with the wrapped second row or it overlaps the confirm button. */
+  .timeInputs { height: auto; min-height: 40px; flex-wrap: wrap; row-gap: 6px; padding-block: 6px; }
+  .timeInputs input { width: 90px; }
+}
 
 @media (max-width: 360px) {
   .form { padding: 20px 14px; }
@@ -56,4 +65,102 @@
   .timeInputs { padding: 0 4px; gap: 4px; }
 }
 
+/* R-05 phone landscape: keep the 60px top clearance for the floating close
+   button, tighten the rest; the whole form scrolls within the short stage. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .form { top: 52px; bottom: 8px; gap: 8px; padding: 14px 16px; border-radius: 24px; }
+  .form legend, .fieldLabel { margin-bottom: 7px; }
+  .descriptionField { height: 50px; }
+  .wheelPreview { height: 56px; margin-top: 7px; }
+  .confirm { height: 42px; flex-basis: 42px; }
+}
+
 @keyframes formIn { from { opacity: 0; transform: translateY(14px) scale(0.985); } }
+
+.aiButton {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(66, 219, 122, 0.22), rgba(42, 168, 255, 0.22));
+  border: 1px solid rgba(66, 219, 122, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 120ms ease-out, box-shadow 120ms ease-out;
+  box-shadow: 0 0 0 0 rgba(66, 219, 122, 0);
+}
+.aiButton:hover { box-shadow: 0 0 0 4px rgba(66, 219, 122, 0.15); }
+.aiButton:active { transform: translateY(-50%) scale(0.92); }
+.aiButton img { width: 18px !important; height: 18px !important; opacity: 1 !important; }
+
+.aiLoading { box-shadow: 0 0 0 4px rgba(66, 219, 122, 0.2); }
+
+.aiToggleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 2px;
+  color: #9db3a7;
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+.aiToggleRow input { width: 18px; height: 18px; accent-color: #42db7a; cursor: pointer; }
+
+.aiSuggestion {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(66, 219, 122, 0.08);
+  border: 1px solid rgba(66, 219, 122, 0.2);
+  color: #b9e6c9;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.aiDot {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: #42db7a;
+  box-shadow: 0 0 8px rgba(66, 219, 122, 0.7);
+}
+
+.aiLoadingText {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  color: #8cc8a4;
+  font-size: 12px;
+}
+
+.aiSpinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(66, 219, 122, 0.25);
+  border-top-color: #42db7a;
+  border-radius: 50%;
+  animation: aiSpin 0.9s linear infinite;
+}
+
+@keyframes aiSpin { to { transform: rotate(360deg); } }
+
+.high { color: #ff7878 !important; border-color: rgba(255, 120, 120, 0.3) !important; background: rgba(255, 120, 120, 0.08) !important; }
+.high.selected { color: #ff9090 !important; background: rgba(255, 120, 120, 0.22) !important; border-color: rgba(255, 120, 120, 0.5) !important; }
+.medium { color: #ffc96a !important; border-color: rgba(255, 201, 106, 0.3) !important; background: rgba(255, 201, 106, 0.08) !important; }
+.medium.selected { color: #ffd68a !important; background: rgba(255, 201, 106, 0.22) !important; border-color: rgba(255, 201, 106, 0.5) !important; }
+.low { color: #6fdca0 !important; border-color: rgba(111, 220, 160, 0.3) !important; background: rgba(111, 220, 160, 0.08) !important; }
+.low.selected { color: #8ae4b2 !important; background: rgba(111, 220, 160, 0.22) !important; border-color: rgba(111, 220, 160, 0.5) !important; }

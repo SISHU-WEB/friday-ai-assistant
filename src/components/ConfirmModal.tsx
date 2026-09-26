@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import styles from './ConfirmModal.module.css'
 
 interface ConfirmModalProps {
@@ -10,6 +11,15 @@ interface ConfirmModalProps {
 }
 
 export function ConfirmModal({ title, cancelLabel, confirmLabel, destructive = false, onCancel, onConfirm }: ConfirmModalProps) {
+  // Escape cancels; focus the dialog so keyboard users land inside it (U-5).
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onCancel()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onCancel])
+
   return (
     <div className={styles.backdrop} role="presentation" onPointerDown={(event) => {
       if (event.target === event.currentTarget) onCancel()

@@ -19,7 +19,7 @@
 
 .eyebrow {
   color: #6fdca0;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 1.5px;
   margin: 0 0 4px;
@@ -163,3 +163,188 @@
 }
 
 .dangerBtn:active { transform: scale(0.98); }
+
+.accountRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(18, 25, 21, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  margin-bottom: 14px;
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #42db7a 0%, #2aa8ff 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #04110a;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+}
+
+.accountBody { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.accountEmail { color: #edf5f0; font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.accountPlan { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 999px; background: rgba(66, 219, 122, 0.12); border: 1px solid rgba(66, 219, 122, 0.28); color: #42db7a; font-size: 12px; font-weight: 600; letter-spacing: 0.3px; width: fit-content; }
+
+.subCta {
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #42db7a 0%, #2aa8ff 100%);
+  color: #04110a;
+  font-size: 13px;
+  font-weight: 700;
+  border: 0;
+  white-space: nowrap;
+  transition: transform 100ms ease-out;
+}
+.subCta:active { transform: scale(0.96); }
+
+.syncRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(18, 25, 21, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 14px;
+}
+
+.syncDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6f8a7c;
+  flex-shrink: 0;
+}
+
+.syncDotSyncing { background: #2aa8ff; box-shadow: 0 0 0 3px rgba(42, 168, 255, 0.2); animation: syncPulse 1.6s ease-in-out infinite; }
+.syncDotError { background: #e85d5d; }
+
+@keyframes syncPulse {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.25); }
+}
+
+.syncText { color: #8ea095; font-size: 13px; flex: 1; }
+
+.signOutBtn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #dbe5e0;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 100ms ease-out;
+}
+.signOutBtn:active { transform: scale(0.98); }
+
+.proCard {
+  position: relative;
+  overflow: hidden;
+  padding: 20px;
+  border-radius: 22px;
+  background:
+    radial-gradient(120% 80% at 0% 0%, rgba(66, 219, 122, 0.22) 0%, transparent 55%),
+    radial-gradient(120% 90% at 100% 100%, rgba(42, 168, 255, 0.2) 0%, transparent 60%),
+    linear-gradient(160deg, rgba(18, 32, 24, 0.92), rgba(8, 14, 11, 0.96));
+  border: 1px solid rgba(66, 219, 122, 0.25);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.35);
+  margin-bottom: 16px;
+}
+
+.proTitle {
+  color: #fff;
+  font-size: 19px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  letter-spacing: -0.01em;
+}
+
+.proSub {
+  color: #9db3a7;
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0 0 14px;
+}
+
+.proBtn {
+  width: 100%;
+  padding: 13px 16px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #42db7a 0%, #2aa8ff 100%);
+  color: #04110a;
+  font-size: 14px;
+  font-weight: 700;
+  border: 0;
+  transition: transform 100ms ease-out;
+}
+.proBtn:active { transform: scale(0.97); }
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.fieldLabel {
+  color: #8ea095;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.fieldInput {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(12, 18, 14, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #edf5f0;
+  font-size: 14px;
+  outline: 0;
+  transition: border-color 120ms ease-out, box-shadow 120ms ease-out;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.fieldInput::placeholder { color: #5e7267; }
+.fieldInput:focus {
+  border-color: rgba(66, 219, 122, 0.45);
+  box-shadow: 0 0 0 3px rgba(66, 219, 122, 0.1);
+}
+
+select.fieldInput {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236f8a7c' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 38px;
+  cursor: pointer;
+}
+
+/* R-05 phone landscape: two-column sections use the width; the panel keeps
+   scrolling within 100dvh instead of reserving a 60px phone status gutter. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .panel { padding: calc(12px + env(safe-area-inset-top, 0px)) 20px calc(12px + env(safe-area-inset-bottom, 0px)); }
+  .header { margin-bottom: 16px; }
+  .header h2 { font-size: 23px; }
+  .section { margin-bottom: 18px; }
+  .stats { gap: 10px; }
+  .stat { padding: 12px; }
+  .statValue { font-size: 23px; }
+  .primaryBtn, .secondaryBtn, .dangerBtn, .signOutBtn { padding: 11px; }
+  .proCard { padding: 16px; margin-bottom: 12px; }
+  .accountRow, .syncRow { padding: 11px 13px; margin-bottom: 10px; }
+}

@@ -16,9 +16,16 @@ const typeOptions: Array<{ value: TaskType; label: string }> = [
 ]
 
 const statusOptions: Array<{ value: TaskStatus; label: string }> = [
+  { value: 'scheduled', label: 'Scheduled' },
   { value: 'active', label: 'Active' },
   { value: 'completed', label: 'Completed' },
   { value: 'paused', label: 'Paused' },
+]
+
+const priorityOptions: Array<{ value: 'high' | 'medium' | 'low'; label: string }> = [
+  { value: 'high', label: 'High' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'low', label: 'Low' },
 ]
 
 export function TaskEditor({ task, onSave, onCancel, onDelete }: TaskEditorProps) {
@@ -28,7 +35,10 @@ export function TaskEditor({ task, onSave, onCancel, onDelete }: TaskEditorProps
   const [startTime, setStartTime] = useState(task.startTime ?? '18:00')
   const [endTime, setEndTime] = useState(task.endTime ?? '19:00')
   const [type, setType] = useState<TaskType>(task.type)
-  const [status, setStatus] = useState<TaskStatus>(task.status === 'completed' || task.status === 'paused' ? task.status : 'active')
+  const [status, setStatus] = useState<TaskStatus>(
+    ['scheduled', 'active', 'completed', 'paused'].includes(task.status) ? task.status : 'active',
+  )
+  const [priority, setPriority] = useState<'high' | 'medium' | 'low'>(task.priority ?? 'medium')
   const [timeMethod, setTimeMethod] = useState<'type' | 'wheel'>('type')
 
   const submit = (event: FormEvent) => {
@@ -47,6 +57,7 @@ export function TaskEditor({ task, onSave, onCancel, onDelete }: TaskEditorProps
       type,
       category: categoryByType[type],
       status,
+      priority,
     })
   }
 
@@ -68,6 +79,20 @@ export function TaskEditor({ task, onSave, onCancel, onDelete }: TaskEditorProps
         <legend>Status</legend>
         <div className={styles.segments}>{statusOptions.map((option) => <button key={option.value} className={status === option.value ? styles.selected : ''} type="button" aria-pressed={status === option.value} onClick={() => setStatus(option.value)}>{option.label}</button>)}</div>
       </fieldset>
+
+      <fieldset>
+        <legend>Priority</legend>
+        <div className={styles.segments}>{priorityOptions.map((option) => <button key={option.value} className={priority === option.value ? styles.selected : ''} type="button" aria-pressed={priority === option.value} onClick={() => setPriority(option.value)}>{option.label}</button>)}</div>
+      </fieldset>
+
+      {task.tags && task.tags.length > 0 ? (
+        <fieldset>
+          <legend>Tags</legend>
+          <div className={styles.segments}>
+            {task.tags.map((tag) => <span key={tag} className={styles.selected}>{tag}</span>)}
+          </div>
+        </fieldset>
+      ) : null}
 
       {type === 'scheduled' ? (
         <fieldset>

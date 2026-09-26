@@ -4,20 +4,15 @@ import { App } from './app/App'
 import { I18nProvider } from './lib/i18n'
 import './styles/global.css'
 
-if ('serviceWorker' in navigator) {
-  if (import.meta.env.PROD) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).catch(() => {})
-    })
-  } else {
-    // Dev: tear down any stale service worker and clear its caches so the
-    // phone never keeps running cached old modules after a refresh.
-    navigator.serviceWorker.getRegistrations().then((registrations) => {
-      registrations.forEach((registration) => registration.unregister())
-    })
-    if ('caches' in window) {
-      caches.keys().then((keys) => keys.forEach((key) => caches.delete(key)))
-    }
+if ('serviceWorker' in navigator && !import.meta.env.PROD) {
+  // Dev: tear down any stale service worker and clear its caches so the
+  // phone never keeps running cached old modules after a refresh. In prod the
+  // vite-plugin-pwa virtual module registers the generated service worker.
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    registrations.forEach((registration) => registration.unregister())
+  })
+  if ('caches' in window) {
+    caches.keys().then((keys) => keys.forEach((key) => caches.delete(key)))
   }
 }
 

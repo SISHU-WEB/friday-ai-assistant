@@ -1,7 +1,7 @@
 .carousel {
   position: absolute;
-  top: 220px;
-  left: 30px;
+  top: 34px;
+  left: var(--page-gutter, 30px);
   width: 500px;
   height: 390px;
   outline: none;
@@ -56,6 +56,24 @@
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+@media (max-height: 700px) { .carousel { top: 8px; } }
+
+/* R-05 phone landscape: the deck is a fixed 500×390 canvas (card positions
+   are computed in JS against those dimensions), so reflow is not possible.
+   Scale the whole deck to fit the shortened stage and center it; the
+   schedule list (tap the date) remains the full-size row-based view. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .carousel {
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%) scale(0.68);
+    transform-origin: top center;
+  }
+}
+@media (orientation: landscape) and (max-height: 380px) {
+  .carousel { transform: translateX(-50%) scale(0.62); }
 }
 
 @media (prefers-reduced-motion: reduce) { .cardSlot { transition-duration: 1ms; } }

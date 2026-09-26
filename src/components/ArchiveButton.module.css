@@ -1,7 +1,6 @@
 .button {
-  position: absolute;
-  top: 30px;
-  right: 0;
+  position: relative;
+  flex: 0 0 auto;
   width: 84px;
   height: 84px;
   display: grid;
@@ -40,4 +39,20 @@
 }
 
 .button img { width: 22px; height: 19px; margin: 0 auto; opacity: 0.8; }
-.button span { font-size: 10px; font-weight: 600; letter-spacing: 0.02em; color: var(--color-text-secondary); }
+.button span { font-size: 12px; font-weight: 600; letter-spacing: 0.02em; color: var(--color-text-secondary); }
+
+/* Collapse to an icon-only tile on very narrow phones (paired with Header). */
+@media (max-width: 380px) {
+  .button { width: 44px; height: 44px; border-radius: 14px; gap: 0; }
+  .button span { display: none; }
+  .button::after { border-radius: 13px; }
+}
+
+/* R-05 phone landscape: the 84px archive tile sets the whole header height;
+   collapse it to a 40px icon tile to reclaim stage space. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .button { width: 40px; height: 40px; border-radius: 13px; gap: 0; }
+  .button span { display: none; }
+  .button img { width: 19px; height: 17px; }
+  .button::after { border-radius: 12px; }
+}
