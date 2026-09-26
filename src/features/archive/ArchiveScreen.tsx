@@ -1,45 +1,35 @@
-import { useEffect, useRef } from 'react'
 import styles from './ArchiveScreen.module.css'
+import { ArchiveView, type ArchiveReveal } from './ArchiveView'
+import type { ArchiveFolder } from '../../types/archive'
 
+/**
+ * Frame for the archive view inside the app shell.
+ *
+ * This used to be an `<iframe src="/archive.html">`, which meant the archive was a
+ * separate document: it could not see the app's folders, ignored language and
+ * theme changes, and had to talk to Home through postMessage. It is now a plain
+ * React view inside the same tree, so it reads and writes the archive repository
+ * directly.
+ */
 interface ArchiveScreenProps {
+  folders: ArchiveFolder[]
+  onFoldersChange: (folders: ArchiveFolder[]) => void
   onBack: () => void
+  onExport: () => void
+  onOpenSettings: () => void
+  reveal: ArchiveReveal | null
 }
 
-export function ArchiveScreen({ onBack }: ArchiveScreenProps) {
-  const iframeRef = useRef<HTMLIFrameElement>(null)
-
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'archive:back') {
-        onBack()
-      }
-    }
-    window.addEventListener('message', handleMessage)
-    return () => window.removeEventListener('message', handleMessage)
-  }, [onBack])
-
-  // Listen for save-to-archive requests from Home
-  useEffect(() => {
-    const handleSaveToArchive = (event: Event) => {
-      const detail = (event as CustomEvent).detail
-      if (iframeRef.current?.contentWindow && detail) {
-        iframeRef.current.contentWindow.postMessage({
-          type: 'archive:addItem',
-          payload: detail
-        }, '*')
-      }
-    }
-    window.addEventListener('friday:saveToArchive', handleSaveToArchive)
-    return () => window.removeEventListener('friday:saveToArchive', handleSaveToArchive)
-  }, [])
-
+export function ArchiveScreen({ folders, onFoldersChange, onBack, onExport, onOpenSettings, reveal }: ArchiveScreenProps) {
   return (
     <section className={styles.screen} aria-label="Archive">
-      <iframe
-        ref={iframeRef}
-        src="/archive.html"
-        title="Archive"
-        className={styles.frame}
+      <ArchiveView
+        folders={folders}
+        onFoldersChange={onFoldersChange}
+        onBack={onBack}
+        onExport={onExport}
+        onOpenSettings={onOpenSettings}
+        reveal={reveal}
       />
     </section>
   )
