@@ -28,6 +28,18 @@ body {
   background: #030504;
 }
 
+/* Fixed background layer for dark mode: covers the entire viewport including
+   the area behind Safari's bottom toolbar. Without this, Safari shows its
+   default white background below the body element on iOS. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: #030504;
+  pointer-events: none;
+  z-index: -1;
+}
+
 #root {
   min-height: 100dvh;
   display: flex;
