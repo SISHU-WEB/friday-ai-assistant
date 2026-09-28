@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Task } from '../../types/task'
 import { parseLocalDate, toIsoDate } from '../../utils/date'
+import { taskStatusLabel, taskTypeLabel, useI18n } from '../../lib/i18n'
 import { CalendarPicker } from './CalendarPicker'
 import styles from './DailySchedule.module.css'
 
@@ -11,16 +12,18 @@ interface DailyScheduleProps {
   onOpenTask: (task: Task) => void
 }
 
-function formatTaskTime(task: Task) {
-  if (!task.startTime) return 'No fixed time'
-  return task.endTime ? `${task.startTime} – ${task.endTime}` : task.startTime
-}
-
 export function DailySchedule({ selectedDate, tasks, onSelectedDateChange, onOpenTask }: DailyScheduleProps) {
+  const { t, language } = useI18n()
+  const locale = language === 'zh' ? 'zh-CN' : 'en-US'
   const [showCalendar, setShowCalendar] = useState(true)
   const today = toIsoDate(new Date())
   const sortedTasks = [...tasks].sort((a, b) => (a.startTime ?? '99:99').localeCompare(b.startTime ?? '99:99'))
-  const fullDate = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).format(parseLocalDate(selectedDate))
+  const fullDate = new Intl.DateTimeFormat(locale, { weekday: 'long', month: 'long', day: 'numeric' }).format(parseLocalDate(selectedDate))
+
+  const formatTaskTime = (task: Task) => {
+    if (!task.startTime) return t('noFixedTime')
+    return task.endTime ? `${task.startTime} – ${task.endTime}` : task.startTime
+  }
 
   const selectDate = (date: string) => {
     onSelectedDateChange(date)
@@ -28,13 +31,13 @@ export function DailySchedule({ selectedDate, tasks, onSelectedDateChange, onOpe
   }
 
   return (
-    <section className={styles.schedule} aria-label={`Daily schedule for ${fullDate}`}>
-      <p className={styles.eyebrow}>DAILY SCHEDULE</p>
+    <section className={styles.schedule} aria-label={t('scheduleForAria', { date: fullDate })}>
+      <p className={styles.eyebrow}>{t('dailyScheduleEyebrow')}</p>
       <div className={styles.heading}>
         <h2>{fullDate}</h2>
         <div className={styles.headingActions}>
           {selectedDate !== today ? (
-            <button type="button" className={styles.today} onClick={() => selectDate(today)}>Today</button>
+            <button type="button" className={styles.today} onClick={() => selectDate(today)}>{t('today')}</button>
           ) : null}
           <button
             type="button"
@@ -42,7 +45,7 @@ export function DailySchedule({ selectedDate, tasks, onSelectedDateChange, onOpe
             aria-expanded={showCalendar}
             onClick={() => setShowCalendar((current) => !current)}
           >
-            Calendar
+            {t('calendar')}
           </button>
         </div>
       </div>
@@ -56,15 +59,15 @@ export function DailySchedule({ selectedDate, tasks, onSelectedDateChange, onOpe
               <span className={styles.time}>{formatTaskTime(task)}</span>
               <span className={styles.taskBody}>
                 <strong>{task.title}</strong>
-                <span>{task.type === 'longTerm' ? 'Long-term' : task.type[0].toUpperCase() + task.type.slice(1)}</span>
+                <span>{taskTypeLabel(task.type, language)}</span>
               </span>
-              <span className={`${styles.status} ${styles[task.status] ?? ''}`}>{task.status}</span>
+              <span className={`${styles.status} ${styles[task.status] ?? ''}`}>{taskStatusLabel(task.status, language)}</span>
             </button>
           )) : (
             <div className={styles.empty}>
               <i aria-hidden="true" />
-              <strong>Open day</strong>
-              <span>No tasks scheduled for this date.</span>
+              <strong>{t('openDay')}</strong>
+              <span>{t('noTasksDate')}</span>
             </div>
           )}
         </div>

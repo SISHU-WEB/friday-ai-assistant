@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { PREMIUM_FEATURES, subscriptionManager, type SubscriptionStatus } from '../lib/stripe'
 import { useI18n } from '../lib/i18n'
+import type { TranslationKey } from '../lib/i18n'
 import styles from './SubscriptionPanel.module.css'
 
 interface SubscriptionPanelProps {
@@ -11,8 +12,16 @@ interface SubscriptionPanelProps {
 const PRICE_LABEL_ZH = '¥28/月'
 const PRICE_LABEL_EN = '¥28/mo'
 
+const FEATURE_I18N: Record<string, { name: TranslationKey; description: TranslationKey }> = {
+  'ai-advanced': { name: 'featAiAdvancedName', description: 'featAiAdvancedDesc' },
+  'ai-replan': { name: 'featAiReplanName', description: 'featAiReplanDesc' },
+  'archive-unlimited': { name: 'featArchiveName', description: 'featArchiveDesc' },
+  'cloud-sync': { name: 'featSyncName', description: 'featSyncDesc' },
+  'priority-support': { name: 'featSupportName', description: 'featSupportDesc' },
+}
+
 export function SubscriptionPanel({ onClose }: SubscriptionPanelProps) {
-  const { language } = useI18n()
+  const { t, language } = useI18n()
   const [status, setStatus] = useState<SubscriptionStatus>(subscriptionManager.getStatus())
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
@@ -65,7 +74,7 @@ export function SubscriptionPanel({ onClose }: SubscriptionPanelProps) {
     <div className={styles.backdrop} onClick={onClose}>
       <div className={styles.sheet} onClick={(e) => e.stopPropagation()}>
         <div className={styles.grabber} />
-        <button className={styles.closeBtn} onClick={onClose} aria-label="Close">
+        <button className={styles.closeBtn} onClick={onClose} aria-label={t('close')}>
           ×
         </button>
 
@@ -89,7 +98,9 @@ export function SubscriptionPanel({ onClose }: SubscriptionPanelProps) {
         </div>
 
         <ul className={styles.featureList}>
-          {PREMIUM_FEATURES.map((f) => (
+          {PREMIUM_FEATURES.map((f) => {
+            const labels = FEATURE_I18N[f.id]
+            return (
             <li key={f.id} className={`${styles.featureRow} ${f.requiresPremium ? '' : styles.includedFree}`}>
               <div className={styles.featureCheck}>
                 {f.requiresPremium ? (
@@ -104,17 +115,18 @@ export function SubscriptionPanel({ onClose }: SubscriptionPanelProps) {
               </div>
               <div className={styles.featureBody}>
                 <p className={styles.featureName}>
-                  {f.name}
+                  {labels ? t(labels.name) : f.name}
                   {f.requiresPremium ? (
                     <span className={styles.proTag}>Pro</span>
                   ) : (
                     <span className={styles.freeTag}>{language === 'zh' ? '免费' : 'Free'}</span>
                   )}
                 </p>
-                <p className={styles.featureDesc}>{f.description}</p>
+                <p className={styles.featureDesc}>{labels ? t(labels.description) : f.description}</p>
               </div>
             </li>
-          ))}
+            )
+          })}
         </ul>
 
         {!status.isActive ? (

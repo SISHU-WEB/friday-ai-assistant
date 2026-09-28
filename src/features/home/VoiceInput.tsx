@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useVoiceRecognition } from '../../hooks/useVoiceRecognition'
 import { useI18n } from '../../lib/i18n'
+import type { TranslationKey } from '../../lib/i18n'
 import type { Task } from '../../types/task'
 import styles from './VoiceInput.module.css'
 
@@ -12,14 +13,14 @@ interface VoiceInputProps {
   onCancel: () => void
 }
 
-const errorMessages = {
-  'not-allowed': 'Microphone access is blocked. Allow it in browser settings, then try again.',
-  'no-speech': 'No speech was detected. Tap retry and speak again.',
-  'audio-capture': 'No microphone is available on this device.',
-  network: 'Voice recognition needs a network connection in this browser.',
-  unsupported: 'Voice recognition is not supported in this browser. Type below instead.',
-  unknown: 'Voice input stopped unexpectedly. Please try again.',
-} as const
+const errorKeys: Record<string, TranslationKey> = {
+  'not-allowed': 'voiceErrNotAllowed',
+  'no-speech': 'voiceErrNoSpeech',
+  'audio-capture': 'voiceErrAudioCapture',
+  network: 'voiceErrNetwork',
+  unsupported: 'voiceErrUnsupported',
+  unknown: 'voiceErrUnknown',
+}
 
 export function VoiceInput({ selectedDate, purpose = 'task', onSubmit, onInterruptionComplete, onCancel }: VoiceInputProps) {
   const { t, language } = useI18n()
@@ -85,11 +86,9 @@ export function VoiceInput({ selectedDate, purpose = 'task', onSubmit, onInterru
             ) : null}
           </>
         ) : null}
-        <h2 id="voice-title">{listening ? t('listening') : displayText ? 'Ready' : t('voiceInput')}</h2>
+        <h2 id="voice-title">{listening ? t('listening') : displayText ? t('voiceReady') : t('voiceInput')}</h2>
         <p className={styles.hint}>
-          {purpose === 'task'
-            ? (language === 'zh' ? '告诉 Friday 你想做什么，或直接输入' : 'Tell Friday what you want to do, or type below')
-            : (language === 'zh' ? '简单描述一下，或直接输入' : 'Briefly describe, or type below')}
+          {purpose === 'task' ? t('voiceTaskHint') : t('voiceInterruptHint')}
         </p>
         {transcript ? (
           <p className={styles.transcript} aria-live="polite">{transcript}</p>
@@ -98,20 +97,20 @@ export function VoiceInput({ selectedDate, purpose = 'task', onSubmit, onInterru
           className={styles.manualInput}
           value={manualText}
           onChange={(e) => setManualText(e.target.value)}
-          placeholder={language === 'zh' ? '输入你的任务...' : 'Type your task...'}
+          placeholder={purpose === 'task' ? t('voiceTaskPlaceholder') : t('voiceInterruptPlaceholder')}
           rows={2}
         />
-        {error ? <p className={styles.error} role="alert">{errorMessages[error]}</p> : null}
+        {error ? <p className={styles.error} role="alert">{t(errorKeys[error] ?? 'voiceErrUnknown')}</p> : null}
         <div className={styles.actions}>
           <button className={styles.cancelBtn} type="button" onClick={onCancel}>{t('cancel')}</button>
           {supported && !listening ? (
-            <button className={styles.retryBtn} type="button" onClick={() => start(lang)}>{language === 'zh' ? '重试' : 'Retry'}</button>
+            <button className={styles.retryBtn} type="button" onClick={() => start(lang)}>{t('retry')}</button>
           ) : null}
           {listening ? (
-            <button className={styles.retryBtn} type="button" onClick={stop}>{language === 'zh' ? '停止' : 'Stop'}</button>
+            <button className={styles.retryBtn} type="button" onClick={stop}>{t('stop')}</button>
           ) : null}
           <button className={styles.confirmBtn} type="button" disabled={!displayText.trim()} onClick={confirm}>
-            {purpose === 'task' ? t('addTask') : (language === 'zh' ? '暂停并重排' : 'Pause & replan')}
+            {purpose === 'task' ? t('addTask') : t('pauseReplan')}
           </button>
         </div>
       </div>

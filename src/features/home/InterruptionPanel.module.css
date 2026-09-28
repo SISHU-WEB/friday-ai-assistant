@@ -174,7 +174,7 @@
   color: #c3d6cb;
   font-size: 12px;
   font-weight: 600;
-  transition: all 160ms ease;
+  transition: transform 120ms ease-out, background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
 }
 .option:active {
   transform: scale(0.96);

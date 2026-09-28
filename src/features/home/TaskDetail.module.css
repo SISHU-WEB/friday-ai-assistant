@@ -19,12 +19,14 @@
 @keyframes detailIn { from { opacity: 0; transform: translateY(12px) scale(0.99); } }
 
 /* R-05 phone landscape: compact panel filling the short stage; the column
-   scrolls internally and the action row stays reachable. */
+   scrolls internally and the action row stays reachable. Spacing is shaved
+   (~40px total) so Delete/Edit/Archive land above the fold at 390px height. */
 @media (orientation: landscape) and (max-height: 500px) {
-  .detail { top: 8px; bottom: 8px; padding: 16px 18px; border-radius: 24px; }
-  .eyebrow { margin-bottom: 6px; }
-  .detail h2 { font-size: 23px; }
-  .description { margin-top: 14px; padding-bottom: 12px; }
-  .detail dl { margin-top: 14px; gap: 12px 16px; }
-  .actions { padding-top: 12px; }
+  .detail { top: 8px; bottom: 8px; padding: 12px 16px; border-radius: 24px; }
+  .eyebrow { margin-bottom: 4px; }
+  .detail h2 { font-size: 22px; }
+  .description { margin-top: 10px; padding-bottom: 8px; }
+  .detail dl { margin-top: 10px; gap: 8px 16px; }
+  .actions { padding-top: 8px; }
+  .actions button { height: 38px; }
 }

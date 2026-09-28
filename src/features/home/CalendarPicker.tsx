@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { parseLocalDate, toIsoDate } from '../../utils/date'
+import { useI18n } from '../../lib/i18n'
 import styles from './CalendarPicker.module.css'
 
 interface CalendarPickerProps {
@@ -7,9 +8,14 @@ interface CalendarPickerProps {
   onSelect: (date: string) => void
 }
 
-const weekdays = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+const weekdayLetters = {
+  en: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
+  zh: ['日', '一', '二', '三', '四', '五', '六'],
+}
 
 export function CalendarPicker({ selectedDate, onSelect }: CalendarPickerProps) {
+  const { t, language } = useI18n()
+  const locale = language === 'zh' ? 'zh-CN' : 'en-US'
   const selected = parseLocalDate(selectedDate)
   const [visibleMonth, setVisibleMonth] = useState(() => new Date(selected.getFullYear(), selected.getMonth(), 1, 12))
   const today = toIsoDate(new Date())
@@ -33,17 +39,17 @@ export function CalendarPicker({ selectedDate, onSelect }: CalendarPickerProps) 
     setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() + offset, 1, 12))
   }
 
-  const monthLabel = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(visibleMonth)
+  const monthLabel = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(visibleMonth)
 
   return (
-    <section className={styles.calendar} aria-label="Calendar picker">
+    <section className={styles.calendar} aria-label={t('calendarPicker')}>
       <div className={styles.monthHeader}>
-        <button type="button" aria-label="Previous month" onClick={() => moveMonth(-1)}>‹</button>
+        <button type="button" aria-label={t('prevMonth')} onClick={() => moveMonth(-1)}>‹</button>
         <strong>{monthLabel}</strong>
-        <button type="button" aria-label="Next month" onClick={() => moveMonth(1)}>›</button>
+        <button type="button" aria-label={t('nextMonth')} onClick={() => moveMonth(1)}>›</button>
       </div>
       <div className={styles.weekdays} aria-hidden="true">
-        {weekdays.map((day, index) => <span key={`${day}-${index}`}>{day}</span>)}
+        {weekdayLetters[language].map((day, index) => <span key={`${day}-${index}`}>{day}</span>)}
       </div>
       <div className={styles.grid}>
         {days.map((date, index) => {
@@ -55,7 +61,7 @@ export function CalendarPicker({ selectedDate, onSelect }: CalendarPickerProps) 
               className={className}
               type="button"
               key={iso}
-              aria-label={new Intl.DateTimeFormat('en-US', { dateStyle: 'full' }).format(date)}
+              aria-label={new Intl.DateTimeFormat(locale, { dateStyle: 'full' }).format(date)}
               aria-pressed={iso === selectedDate}
               onClick={() => onSelect(iso)}
             >

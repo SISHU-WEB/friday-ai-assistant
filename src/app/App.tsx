@@ -43,7 +43,7 @@ function freshId(): string {
 }
 
 export function App() {
-  const { language } = useI18n()
+  const { t } = useI18n()
   const [state, dispatch] = useReducer(appReducer, undefined, createInitialState)
   const [toasts, setToasts] = useState<ToastMessage[]>([])
   const [session, setSession] = useState<Session | null>(null)
@@ -189,7 +189,7 @@ export function App() {
   const addTasksBatch = (tasks: Task[]) => {
     dispatch({ type: 'ADD_TASKS_BATCH', tasks })
     dispatch({ type: 'SET_HOME_MODE', mode: 'running' })
-    showToast(`${tasks.length} tasks added via AI`)
+    showToast(t('tasksAddedAi', { n: tasks.length }))
   }
 
   const handleArchiveFoldersChange = useCallback((folders: ArchiveFolder[]) => {
@@ -225,7 +225,7 @@ export function App() {
       const target =
         state.archiveFolders.find((folder) => folder.id === state.activeArchiveFolder) ?? state.archiveFolders[0]
       if (!target) {
-        showToast('Create an archive folder first')
+        showToast(t('createFolderFirst'))
         return
       }
 
@@ -248,9 +248,9 @@ export function App() {
       })
       setArchiveReveal({ folderId: target.id, nonce: Date.now() })
       dispatch({ type: 'SET_VIEW', view: 'archive' })
-      showToast(`Saved to ${target.name}`)
+      showToast(t('savedToName', { name: target.name }))
     },
-    [state.activeArchiveFolder, state.archiveFolders, showToast],
+    [state.activeArchiveFolder, state.archiveFolders, showToast, t],
   )
 
   const handleInterruption = async (result: InterruptionResult) => {
@@ -274,7 +274,7 @@ export function App() {
 
     const canUseReplan = subscriptionManager.canUseFeature('ai-replan')
     if (!canUseReplan) {
-      showToast('升级 Pro 以启用 AI 智能重排', '立即升级', () => dispatch({ type: 'SET_HOME_MODE', mode: 'settings' }))
+      showToast(t('upgradeProToast'), t('upgradeNow'), () => dispatch({ type: 'SET_HOME_MODE', mode: 'settings' }))
       dispatch({ type: 'SET_HOME_MODE', mode: 'paused' })
       return
     }
@@ -323,10 +323,10 @@ export function App() {
       const otherDays = state.tasks.filter((t) => t.date !== state.selectedDate)
       const final = [...completed, ...rescheduled, ...otherDays]
       dispatch({ type: 'REPLACE_DAY_TASKS', date: state.selectedDate, tasks: final })
-      showToast(plan.summary || '已根据打断重新规划剩余日程')
+      showToast(plan.summary || t('interruptionReplanned'))
     } else {
       dispatch({ type: 'SET_HOME_MODE', mode: 'paused' })
-      showToast('已记录打断，请手动调整日程')
+      showToast(t('interruptionLogged'))
     }
   }
 
@@ -346,7 +346,7 @@ export function App() {
     a.download = `friday-backup-${new Date().toISOString().slice(0, 10)}.json`
     a.click()
     URL.revokeObjectURL(url)
-    showToast('Data exported')
+    showToast(t('dataExported'))
   }
 
   const handleImport = (file: File) => {
@@ -354,19 +354,17 @@ export function App() {
     reader.onload = (e) => {
       const backup = parseBackup((e.target?.result as string) ?? '')
       if (!backup) {
-        showToast(language === 'zh' ? '导入失败：文件格式无效' : 'Import failed: invalid file')
+        showToast(t('importFailed'))
         return
       }
       setPendingConfirm({
-        title: language === 'zh'
-          ? `导入 ${backup.tasks.length} 个任务、${backup.archiveFolders.length} 个归档文件夹？当前数据将被覆盖。`
-          : `Import ${backup.tasks.length} tasks and ${backup.archiveFolders.length} archive folders? Current data will be replaced.`,
-        confirmLabel: language === 'zh' ? '导入' : 'Import',
+        title: t('importConfirmTitle', { tasks: backup.tasks.length, folders: backup.archiveFolders.length }),
+        confirmLabel: t('importShort'),
         destructive: true,
         run: () => {
           taskRepository.save(backup.tasks)
           archiveRepository.save(backup.archiveFolders)
-          showToast(language === 'zh' ? '数据已导入' : 'Data imported')
+          showToast(t('dataImported'))
           window.location.reload()
         },
       })
@@ -376,15 +374,13 @@ export function App() {
 
   const handleClearData = () => {
     setPendingConfirm({
-      title: language === 'zh'
-        ? '确定要清除所有本地数据吗？此操作不可恢复。'
-        : 'Clear all local data? This cannot be undone.',
-      confirmLabel: language === 'zh' ? '全部清除' : 'Clear All',
+      title: t('clearDataConfirmTitle'),
+      confirmLabel: t('clearAllShort'),
       destructive: true,
       run: () => {
         // localStorage.clear() also wipes the tombstone store.
         localStorage.clear()
-        showToast(language === 'zh' ? '所有数据已清除' : 'All data cleared')
+        showToast(t('allDataCleared'))
         window.location.reload()
       },
     })
@@ -396,7 +392,7 @@ export function App() {
       initialSyncRef.current = false
       setSyncReady(false)
       exitGuestMode()
-      showToast(language === 'zh' ? '已退出登录' : 'Signed out')
+      showToast(t('signedOut'))
     } catch (e) {
       showToast((e as Error).message)
     }
@@ -452,7 +448,7 @@ export function App() {
               onDeleteTask={(id) => {
                 recordTombstone('tasks', [id])
                 dispatch({ type: 'DELETE_TASK', id })
-                showToast('Task deleted', 'Undo', () => {
+                showToast(t('taskDeleted'), t('undo'), () => {
                   clearTombstones('tasks', [id])
                   dispatch({ type: 'UNDO_DELETE_TASK', id })
                 })
@@ -502,7 +498,7 @@ export function App() {
         {pendingConfirm ? (
           <ConfirmModal
             title={pendingConfirm.title}
-            cancelLabel={language === 'zh' ? '取消' : 'Cancel'}
+            cancelLabel={t('cancel')}
             confirmLabel={pendingConfirm.confirmLabel}
             destructive={pendingConfirm.destructive}
             onCancel={() => setPendingConfirm(null)}

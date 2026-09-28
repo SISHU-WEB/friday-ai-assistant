@@ -40,7 +40,7 @@
 .methodSelector button { height: 28px; padding: 0 11px; border-radius: 14px; font-size: 12px; }
 .timeInputs { height: 40px; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 0 12px; background: rgb(12 18 14 / 62%); border: 1px solid rgb(184 255 209 / 22%); border-radius: 20px; }
 .timeInputs label { display: flex; align-items: center; gap: 5px; color: #a3b0a8; font-size: 12px; }
-.timeInputs input { width: 73px; padding: 4px; color: #dbe5e0; color-scheme: dark; background: transparent; border: 0; outline: 0; font-size: 12px; }
+.timeInputs input { width: 90px; padding: 4px; color: #dbe5e0; color-scheme: dark; background: transparent; border: 0; outline: 0; font-size: 12px; }
 .timeInputs span { color: #47db7a; font-size: 12px; }
 
 .wheelPreview { height: 76px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; margin-top: 10px; color: #808f85; background: rgb(9 14 11 / 66%); border: 1px solid rgb(184 255 209 / 18%); border-radius: 20px; font-size: 12px; overflow: hidden; }

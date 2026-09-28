@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
 import type { Task } from '../../types/task'
+import { useI18n } from '../../lib/i18n'
 import { TaskCard } from './TaskCard'
 import styles from './TaskCarousel.module.css'
 
@@ -23,6 +24,7 @@ function rubberBand(distance: number, dimension = SWIPE_DISTANCE, coefficient = 
 }
 
 export function TaskCarousel({ activeTaskIndex, onActiveTaskChange, tasks, onOpenTask }: TaskCarouselProps) {
+  const { t } = useI18n()
   const dragStartX = useRef<number | null>(null)
   const dragStartY = useRef<number | null>(null)
   const dragXRef = useRef(0)
@@ -81,6 +83,13 @@ export function TaskCarousel({ activeTaskIndex, onActiveTaskChange, tasks, onOpe
 
   const handlePointerDown = (event: PointerEvent<HTMLElement>) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return
+    // Capture so pointerup/click always resolve on the card even when the
+    // finger lifts outside the slot — prevents intermittent dead clicks.
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId)
+    } catch {
+      /* older engines: ignore */
+    }
     dragStartX.current = event.clientX
     dragStartY.current = event.clientY
     dragXRef.current = 0
@@ -141,7 +150,7 @@ export function TaskCarousel({ activeTaskIndex, onActiveTaskChange, tasks, onOpe
     <section
       ref={carouselRef}
       className={`${styles.carousel} ${isDragging ? styles.dragging : ''}`}
-      aria-label="Today's task carousel"
+      aria-label={t('taskCarousel')}
       aria-roledescription="carousel"
       tabIndex={0}
       onKeyDown={(event) => {
@@ -184,9 +193,9 @@ export function TaskCarousel({ activeTaskIndex, onActiveTaskChange, tasks, onOpe
             role="button"
             tabIndex={visible ? 0 : -1}
             aria-hidden={!visible}
-            aria-label={index === activeTaskIndex ? `Open ${task.title}` : `Show ${task.title}`}
+            aria-label={index === activeTaskIndex ? t('openNamedTask', { name: task.title }) : t('showNamedTask', { name: task.title })}
             onClick={() => {
-              if (Math.abs(dragXRef.current) > 5) return
+              if (Date.now() < suppressClickUntil.current) return
               if (index === activeTaskIndex) onOpenTask(task)
               else onActiveTaskChange(index)
             }}
@@ -202,7 +211,7 @@ export function TaskCarousel({ activeTaskIndex, onActiveTaskChange, tasks, onOpe
           </div>
         )
       })}
-      <p className={styles.srStatus} aria-live="polite">Task {activeTaskIndex + 1} of {tasks.length}: {tasks[activeTaskIndex].title}</p>
+      <p className={styles.srStatus} aria-live="polite">{t('taskNOfM', { n: activeTaskIndex + 1, total: tasks.length, name: tasks[activeTaskIndex].title })}</p>
     </section>
   )
 }

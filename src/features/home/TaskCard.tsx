@@ -3,6 +3,7 @@ import dumbbellIcon from '../../assets/dumbbell.svg'
 import focusIndicator from '../../assets/focus-indicator.svg'
 import photoIcon from '../../assets/photo.svg'
 import type { Task } from '../../types/task'
+import { categoryLabel, useI18n } from '../../lib/i18n'
 import styles from './TaskCard.module.css'
 
 type TaskCardVariant = 'primary' | 'preview' | 'stack'
@@ -17,16 +18,18 @@ const previewIcons: Record<string, string> = {
 }
 
 export function TaskCard({ task, variant, className = '', active = false, activeMix = 1, side = 'right' }: TaskCardProps) {
+  const { t, language } = useI18n()
+  const category = categoryLabel(task.category, language)
   if (variant === 'preview') {
     const icon = previewIcons[task.id] ?? focusIndicator
     return (
-      <article className={`${styles.card} ${styles.preview} ${className}`} aria-label={`${task.title} task preview`}>
+      <article className={`${styles.card} ${styles.preview} ${className}`} aria-label={t('taskPreviewAria', { name: task.title })}>
         <div className={styles.previewHeading}>
           {icon ? <img src={icon} alt="" aria-hidden="true" /> : null}
           <h2>{task.title}</h2>
           <p>{task.time}</p>
         </div>
-        <span className={styles.categoryPill}>{task.category}</span>
+        <span className={styles.categoryPill}>{category}</span>
       </article>
     )
   }
@@ -37,7 +40,7 @@ export function TaskCard({ task, variant, className = '', active = false, active
       <article
         className={`${styles.card} ${styles.stack} ${className}`}
         style={{ '--active-mix': activeMix } as React.CSSProperties}
-        aria-label={`${task.title} task`}
+        aria-label={t('taskCardAria', { name: task.title })}
       >
         <div className={styles.fullContent} aria-hidden={!active}>
           <div>
@@ -48,21 +51,21 @@ export function TaskCard({ task, variant, className = '', active = false, active
           </div>
           <div className={styles.focusRow}>
             <img src={focusIndicator} alt="" aria-hidden="true" />
-            <span>{task.category}</span>
+            <span>{category}</span>
           </div>
         </div>
         <div className={`${styles.previewContent} ${side === "left" ? styles.previewLeft : ""}`} aria-hidden={active}>
           <img src={icon} alt="" aria-hidden="true" />
           <h2>{task.title}</h2>
           <p>{task.time}</p>
-          <span>{task.category}</span>
+          <span>{category}</span>
         </div>
       </article>
     )
   }
 
   return (
-    <article className={`${styles.card} ${styles.primary} ${className}`} aria-label={`${task.title} active task`}>
+    <article className={`${styles.card} ${styles.primary} ${className}`} aria-label={t('activeTaskAria', { name: task.title })}>
       <div>
         <h2>{task.title}</h2>
         <p className={styles.time}>{task.time}</p>
@@ -71,7 +74,7 @@ export function TaskCard({ task, variant, className = '', active = false, active
       </div>
       <div className={styles.focusRow}>
         <img src={focusIndicator} alt="" aria-hidden="true" />
-        <span>{task.category}</span>
+        <span>{category}</span>
       </div>
     </article>
   )

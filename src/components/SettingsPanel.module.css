@@ -49,6 +49,11 @@
 
 .closeBtn:active { transform: scale(0.9); }
 
+/* P3-3: while the Pro subscription sheet is open it renders its own close
+   control; hide the settings close so the two × buttons never sit side by
+   side (most visible in landscape). visibility avoids layout reflow. */
+.subOpen .closeBtn { visibility: hidden; }
+
 .section {
   margin-bottom: 28px;
 }

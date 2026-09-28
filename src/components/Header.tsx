@@ -1,6 +1,7 @@
 import { useRef, useState, type PointerEvent } from 'react'
 import { formatMonthDay, formatWeekday, shiftIsoDate } from '../utils/date'
 import { ArchiveButton } from './ArchiveButton'
+import { useI18n } from '../lib/i18n'
 import styles from './Header.module.css'
 
 interface HeaderProps {
@@ -16,6 +17,7 @@ interface HeaderProps {
 }
 
 export function Header({ onOpenArchive, onOpenTrash, trashCount, onOpenSettings, selectedDate, onSelectedDateChange, onOpenSchedule, compact = false }: HeaderProps) {
+  const { t } = useI18n()
   const startX = useRef<number | null>(null)
   const movementX = useRef(0)
   const suppressClickUntil = useRef(0)
@@ -59,7 +61,7 @@ export function Header({ onOpenArchive, onOpenTrash, trashCount, onOpenSettings,
       <button
         type="button"
         className={styles.dateBlock}
-        aria-label={`Selected date ${formatWeekday(selectedDate)}, ${formatMonthDay(selectedDate)}. Swipe or use arrow keys to change day.`}
+        aria-label={t('dateBlockAria', { weekday: formatWeekday(selectedDate), date: formatMonthDay(selectedDate) })}
         onPointerDown={pointerDown}
         onPointerMove={pointerMove}
         onPointerUp={pointerEnd}
@@ -84,7 +86,7 @@ export function Header({ onOpenArchive, onOpenTrash, trashCount, onOpenSettings,
               type="button"
               className={styles.settingsBtn}
               onClick={onOpenSettings}
-              aria-label="Open settings"
+              aria-label={t('openSettings')}
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="3" />
@@ -95,7 +97,7 @@ export function Header({ onOpenArchive, onOpenTrash, trashCount, onOpenSettings,
               type="button"
               className={styles.trashButton}
               onClick={onOpenTrash}
-              aria-label={trashCount > 0 ? `Open trash, ${trashCount} items` : 'Open trash'}
+              aria-label={trashCount > 0 ? t('openTrashCount', { n: trashCount }) : t('openTrash')}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 6h18" />

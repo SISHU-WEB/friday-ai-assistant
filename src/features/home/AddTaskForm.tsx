@@ -4,7 +4,7 @@ import aiIcon from '../../assets/focus-indicator.svg'
 import type { Task, TaskType } from '../../types/task'
 import { aiScheduleTasks, isAIConfigured } from '../../lib/ai'
 import { subscriptionManager } from '../../lib/stripe'
-import { useI18n } from '../../lib/i18n'
+import { categoryLabel, taskTypeLabel, useI18n } from '../../lib/i18n'
 import styles from './AddTaskForm.module.css'
 
 interface AddTaskFormProps {
@@ -15,11 +15,7 @@ interface AddTaskFormProps {
   onDirtyChange: (dirty: boolean) => void
 }
 
-const taskTypes: Array<{ value: TaskType; label: string }> = [
-  { value: 'longTerm', label: 'Long-term' },
-  { value: 'scheduled', label: 'Scheduled' },
-  { value: 'flexible', label: 'Flexible' },
-]
+const taskTypes: TaskType[] = ['longTerm', 'scheduled', 'flexible']
 
 function taskTitleFromDesc(description: string) {
   const trimmed = description.trim()
@@ -60,41 +56,41 @@ export function AddTaskForm({ onSubmit, onSubmitBatch, selectedDate, existingTas
         isPremium: subscriptionManager.isPremium(),
       })
       if (result && result.tasks.length > 0) {
-        setAiSuggestion(result.summary || (language === 'zh' ? 'AI 已为您智能规划' : 'AI schedule ready'))
+        setAiSuggestion(result.summary || t('aiReady'))
         if (result.tasks.length === 1) {
-          const t = result.tasks[0]
-          setStartTime(t.startTime)
-          setEndTime(t.endTime)
-          setCategory(t.category || 'Other')
-          setPriority(t.priority || 'medium')
-          setType(t.isFlexible ? 'flexible' : 'scheduled')
+          const aiTask = result.tasks[0]
+          setStartTime(aiTask.startTime)
+          setEndTime(aiTask.endTime)
+          setCategory(aiTask.category || 'Other')
+          setPriority(aiTask.priority || 'medium')
+          setType(aiTask.isFlexible ? 'flexible' : 'scheduled')
         } else if (onSubmitBatch) {
           const now = new Date().toISOString()
-          const batch: Task[] = result.tasks.map((t, i) => ({
+          const batch: Task[] = result.tasks.map((aiTask, i) => ({
             id: `ai-${Date.now()}-${i}`,
-            title: t.title,
+            title: aiTask.title,
             date: selectedDate,
-            startTime: t.startTime,
-            endTime: t.endTime,
+            startTime: aiTask.startTime,
+            endTime: aiTask.endTime,
             status: 'scheduled',
-            type: t.isFlexible ? 'flexible' : 'scheduled',
+            type: aiTask.isFlexible ? 'flexible' : 'scheduled',
             createdAt: now,
-            description: t.description || t.title,
-            category: t.category || 'Other',
-            priority: t.priority,
-            tags: t.tags,
-            isFlexible: t.isFlexible,
-            time: `${t.startTime} – ${t.endTime}`,
+            description: aiTask.description || aiTask.title,
+            category: aiTask.category || 'Other',
+            priority: aiTask.priority,
+            tags: aiTask.tags,
+            isFlexible: aiTask.isFlexible,
+            time: `${aiTask.startTime} – ${aiTask.endTime}`,
           }))
           setAiLoading(false)
           onSubmitBatch(batch)
           return
         }
       } else {
-        setAiSuggestion(language === 'zh' ? 'AI 未能解析，请手动设置时间' : 'AI could not parse; set time manually')
+        setAiSuggestion(t('aiParseFail'))
       }
     } catch {
-      setAiSuggestion(language === 'zh' ? 'AI 暂时不可用，请手动安排' : 'AI unavailable; schedule manually')
+      setAiSuggestion(t('aiUnavailable'))
     } finally {
       setAiLoading(false)
     }
@@ -122,26 +118,26 @@ export function AddTaskForm({ onSubmit, onSubmitBatch, selectedDate, existingTas
   }
 
   return (
-    <form className={styles.form} onSubmit={submit} aria-label="Add a task">
+    <form className={styles.form} onSubmit={submit} aria-label={t('addTaskAria')}>
       <fieldset>
-        <legend>{language === 'zh' ? '任务类型' : 'Task type'}</legend>
+        <legend>{t('taskType')}</legend>
         <div className={styles.segmented}>
           {taskTypes.map((option) => (
             <button
-              key={option.value}
-              className={type === option.value ? styles.selected : ''}
+              key={option}
+              className={type === option ? styles.selected : ''}
               type="button"
-              aria-pressed={type === option.value}
-              onClick={() => setType(option.value)}
+              aria-pressed={type === option}
+              onClick={() => setType(option)}
             >
-              {option.label}
+              {taskTypeLabel(option, language)}
             </button>
           ))}
         </div>
       </fieldset>
 
       <label className={styles.fieldLabel} htmlFor="task-description">
-        {language === 'zh' ? '任务描述' : 'Task description'}
+        {t('taskDescription')}
       </label>
       <div className={styles.descriptionField}>
         <img src={penIcon} alt="" aria-hidden="true" />
@@ -160,7 +156,7 @@ export function AddTaskForm({ onSubmit, onSubmitBatch, selectedDate, existingTas
               runAISchedule()
             }
           }}
-          placeholder={language === 'zh' ? '写周报、健身、和朋友吃晚饭...' : 'Write report, gym, dinner with Alex...'}
+          placeholder={t('taskPlaceholder')}
           autoComplete="off"
         />
         {canUseAI ? (
@@ -168,8 +164,8 @@ export function AddTaskForm({ onSubmit, onSubmitBatch, selectedDate, existingTas
             type="button"
             className={`${styles.aiButton} ${aiLoading ? styles.aiLoading : ''}`}
             onClick={() => runAISchedule()}
-            title={language === 'zh' ? '用 AI 智能解析' : 'AI smart parse'}
-            aria-label="AI parse"
+            title={t('aiSmartParse')}
+            aria-label={t('aiParse')}
           >
             <img src={aiIcon} alt="" aria-hidden="true" />
           </button>
@@ -183,7 +179,7 @@ export function AddTaskForm({ onSubmit, onSubmitBatch, selectedDate, existingTas
             checked={useAi}
             onChange={(e) => setUseAi(e.target.checked)}
           />
-          <span>{language === 'zh' ? '自动使用 AI 解析时间与分类' : 'Auto parse time & category with AI'}</span>
+          <span>{t('aiAutoParse')}</span>
         </label>
       )}
 
@@ -196,12 +192,12 @@ export function AddTaskForm({ onSubmit, onSubmitBatch, selectedDate, existingTas
       {aiLoading ? (
         <p className={styles.aiLoadingText}>
           <span className={styles.aiSpinner} />
-          {language === 'zh' ? 'AI 正在规划中...' : 'AI is planning...'}
+          {t('aiPlanning')}
         </p>
       ) : null}
 
       <fieldset>
-        <legend>{language === 'zh' ? '分类' : 'Category'}</legend>
+        <legend>{t('category')}</legend>
         <div className={styles.segmented}>
           {categories.map((c) => (
             <button
@@ -211,14 +207,14 @@ export function AddTaskForm({ onSubmit, onSubmitBatch, selectedDate, existingTas
               onClick={() => setCategory(c)}
               aria-pressed={category === c}
             >
-              {c}
+              {categoryLabel(c, language)}
             </button>
           ))}
         </div>
       </fieldset>
 
       <fieldset>
-        <legend>{language === 'zh' ? '优先级' : 'Priority'}</legend>
+        <legend>{t('priority')}</legend>
         <div className={styles.segmented}>
           {(['high', 'medium', 'low'] as const).map((p) => (
             <button
@@ -228,7 +224,7 @@ export function AddTaskForm({ onSubmit, onSubmitBatch, selectedDate, existingTas
               onClick={() => setPriority(p)}
               aria-pressed={priority === p}
             >
-              {p === 'high' ? (language === 'zh' ? '高' : 'High') : p === 'medium' ? (language === 'zh' ? '中' : 'Med') : (language === 'zh' ? '低' : 'Low')}
+              {t(p === 'high' ? 'high' : p === 'medium' ? 'med' : 'low')}
             </button>
           ))}
         </div>
@@ -236,7 +232,7 @@ export function AddTaskForm({ onSubmit, onSubmitBatch, selectedDate, existingTas
 
       {type === 'scheduled' ? (
         <fieldset className={styles.timeSection}>
-          <legend>{language === 'zh' ? '时间' : 'Time'}</legend>
+          <legend>{t('time')}</legend>
           <div className={styles.methodSelector}>
             <button
               className={timeMethod === 'type' ? styles.selected : ''}
@@ -244,7 +240,7 @@ export function AddTaskForm({ onSubmit, onSubmitBatch, selectedDate, existingTas
               aria-pressed={timeMethod === 'type'}
               onClick={() => setTimeMethod('type')}
             >
-              {language === 'zh' ? '输入' : 'Type'}
+              {t('typeInput')}
             </button>
             {canUseAI ? (
               <button
@@ -262,7 +258,7 @@ export function AddTaskForm({ onSubmit, onSubmitBatch, selectedDate, existingTas
           </div>
           <div className={styles.timeInputs}>
             <label>
-              {language === 'zh' ? '开始' : 'Start'}
+              {t('start')}
               <input
                 type="time"
                 value={startTime}
@@ -271,7 +267,7 @@ export function AddTaskForm({ onSubmit, onSubmitBatch, selectedDate, existingTas
             </label>
             <span>→</span>
             <label>
-              {language === 'zh' ? '结束' : 'End'}
+              {t('end')}
               <input
                 type="time"
                 value={endTime}
@@ -282,14 +278,12 @@ export function AddTaskForm({ onSubmit, onSubmitBatch, selectedDate, existingTas
         </fieldset>
       ) : (
         <p className={styles.noTime}>
-          {type === 'flexible'
-            ? (language === 'zh' ? '弹性时间，无固定时段' : 'No fixed time — flexible')
-            : (language === 'zh' ? '长期计划，按节奏推进' : 'Keep moving at your own pace')}
+          {type === 'flexible' ? t('flexibleHint') : t('longTermHint')}
         </p>
       )}
 
       <button className={styles.confirm} type="submit" disabled={!description.trim() || aiLoading}>
-        {aiLoading ? (language === 'zh' ? '规划中...' : 'Planning...') : (language === 'zh' ? '添加任务' : t('addTask'))}
+        {aiLoading ? t('planning') : t('addTask')}
       </button>
     </form>
   )

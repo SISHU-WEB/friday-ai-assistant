@@ -6,6 +6,15 @@
    panel positions itself against this region (R-01). */
 .stage { position: relative; flex: 1 1 auto; min-height: 0; }
 
+/* Issue 4: full-screen tap-to-dismiss layer for the open task card. Sits at
+   z-index 5 - below the card (.detail z-index 6) and the header (z-index 6) -
+   so only the empty gutters and the dock area below the stage are captured. */
+.detailBackdrop {
+  position: absolute; inset: 0; z-index: 5;
+  padding: 0; background: transparent; border: 0;
+  cursor: default;
+}
+
 .screen { max-width: 100%; }
 
 /* Phones fill the viewport and flow naturally; no forced minimum height so

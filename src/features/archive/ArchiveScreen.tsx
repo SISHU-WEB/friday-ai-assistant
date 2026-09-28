@@ -1,3 +1,4 @@
+import { useI18n } from '../../lib/i18n'
 import styles from './ArchiveScreen.module.css'
 import { ArchiveView, type ArchiveReveal } from './ArchiveView'
 import type { ArchiveFolder } from '../../types/archive'
@@ -21,8 +22,9 @@ interface ArchiveScreenProps {
 }
 
 export function ArchiveScreen({ folders, onFoldersChange, onBack, onExport, onOpenSettings, reveal }: ArchiveScreenProps) {
+  const { t } = useI18n()
   return (
-    <section className={styles.screen} aria-label="Archive">
+    <section className={styles.screen} aria-label={t('archive')}>
       <ArchiveView
         folders={folders}
         onFoldersChange={onFoldersChange}

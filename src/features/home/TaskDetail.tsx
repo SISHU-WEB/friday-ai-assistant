@@ -1,5 +1,6 @@
 import type { Task } from '../../types/task'
 import { formatMonthDay } from '../../utils/date'
+import { taskStatusLabel, taskTypeLabel, useI18n } from '../../lib/i18n'
 import styles from './TaskDetail.module.css'
 
 interface TaskDetailProps {
@@ -9,31 +10,24 @@ interface TaskDetailProps {
   onArchive: (task: Task) => void
 }
 
-const typeLabels = { longTerm: 'Long-term', scheduled: 'Scheduled', flexible: 'Flexible' }
-
-function statusLabel(status: Task['status']) {
-  if (status === 'completed') return 'Completed'
-  if (status === 'paused') return 'Paused'
-  return 'Active'
-}
-
 export function TaskDetail({ task, onEdit, onDelete, onArchive }: TaskDetailProps) {
+  const { t, language } = useI18n()
   return (
-    <section className={styles.detail} aria-label={`${task.title} details`}>
-      <p className={styles.eyebrow}>TASK DETAIL</p>
+    <section className={styles.detail} aria-label={t('namedDetails', { name: task.title })}>
+      <p className={styles.eyebrow}>{t('taskDetail')}</p>
       <h2>{task.title}</h2>
-      <div className={styles.description}><span>Description</span><p>{task.description}</p></div>
+      <div className={styles.description}><span>{t('description')}</span><p>{task.description}</p></div>
       <dl>
-        <div><dt>Date</dt><dd>{formatMonthDay(task.date)}</dd></div>
-        <div><dt>Start time</dt><dd>{task.startTime ?? 'No fixed time'}</dd></div>
-        <div><dt>End time</dt><dd>{task.endTime ?? '—'}</dd></div>
-        <div><dt>Type</dt><dd>{typeLabels[task.type]}</dd></div>
-        <div><dt>Status</dt><dd className={styles.status}>{statusLabel(task.status)}</dd></div>
+        <div><dt>{t('date')}</dt><dd>{formatMonthDay(task.date)}</dd></div>
+        <div><dt>{t('startTime')}</dt><dd>{task.startTime ?? t('noFixedTime')}</dd></div>
+        <div><dt>{t('endTime')}</dt><dd>{task.endTime ?? '—'}</dd></div>
+        <div><dt>{t('type')}</dt><dd>{taskTypeLabel(task.type, language)}</dd></div>
+        <div><dt>{t('status')}</dt><dd className={styles.status}>{taskStatusLabel(task.status, language)}</dd></div>
       </dl>
       <div className={styles.actions}>
-        <button className={styles.delete} type="button" onClick={onDelete}>Delete</button>
-        <button className={styles.edit} type="button" onClick={onEdit}>Edit task</button>
-        <button className={styles.archive} type="button" onClick={() => onArchive(task)}>Archive</button>
+        <button className={styles.delete} type="button" onClick={onDelete}>{t('delete')}</button>
+        <button className={styles.edit} type="button" onClick={onEdit}>{t('editTask')}</button>
+        <button className={styles.archive} type="button" onClick={() => onArchive(task)}>{t('archive')}</button>
       </div>
     </section>
   )

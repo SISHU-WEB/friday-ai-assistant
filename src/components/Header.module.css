@@ -1,5 +1,6 @@
 .header {
   position: relative;
+  z-index: 6;
   flex: 0 0 auto;
   display: flex;
   align-items: flex-start;
@@ -143,9 +144,10 @@
 .settingsBtn:active { transform: scale(0.9); }
 .settingsBtn:hover { color: #9db3a7; }
 
-/* Very narrow phones (iPhone SE 320/375): let the date block shrink and
-   tighten the action cluster so the header never overflows (R-01 narrow). */
-@media (max-width: 380px) {
+/* Narrow phones up to 400px (iPhone SE 320/375 + iPhone standard 390/393):
+   let the date block shrink and tighten the action cluster so long weekday
+   names ("Wednesday") never crowd the settings icon (P3-1). */
+@media (max-width: 400px) {
   .header { gap: 8px; }
   .actions { gap: 8px; }
   .dateBlock { width: auto; flex: 0 1 auto; min-width: 0; }

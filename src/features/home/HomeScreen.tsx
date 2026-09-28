@@ -15,6 +15,8 @@ import { TaskCarousel } from './TaskCarousel'
 import { InterruptionPanel, type InterruptionResult } from './InterruptionPanel'
 import { TrashPanel } from '../../components/TrashPanel'
 import { SettingsPanel } from '../../components/SettingsPanel'
+import { useI18n } from '../../lib/i18n'
+import type { TranslationKey } from '../../lib/i18n'
 import styles from './HomeScreen.module.css'
 
 interface HomeScreenProps {
@@ -60,6 +62,7 @@ interface HomeScreenProps {
 }
 
 export function HomeScreen({ tasks, mode, selectedDate, activeTaskIndex, onActiveTaskChange, onOpenArchive, onAddTask, onAddTaskLongPress, onPause, onPauseLongPress, onTaskSubmit, onTaskBatchSubmit, onSelectedDateChange, onOpenSchedule, onCloseSchedule, selectedTask, onOpenTask, onOpenTaskFromSchedule, onCloseTask, onEditTask, onCancelEdit, onUpdateTask, onDeleteTask, onCancelAddTask, onInterruptionComplete, onArchiveTask, deletedTasks, onOpenTrash, onRestoreTask, onPermanentDelete, onEmptyTrash, onOpenSettings, onExport, onImport, onClearData, archiveCount, onSignOut, onSignIn, userEmail }: HomeScreenProps) {
+  const { t } = useI18n()
   const [addTaskDirty, setAddTaskDirty] = useState(false)
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -72,18 +75,18 @@ export function HomeScreen({ tasks, mode, selectedDate, activeTaskIndex, onActiv
     if (mode !== 'taskDetail' && mode !== 'taskEditing') setShowDeleteConfirm(false)
   }, [mode])
 
-  const modeNames: Record<HomeMode, string> = {
-    running: 'Running',
-    paused: 'Paused',
-    pauseVoiceInput: 'Interruption voice input',
-    addTaskText: 'Add Task text input',
-    addTaskVoice: 'Add Task voice input',
-    replanning: 'Replanning',
-    taskDetail: 'Task detail',
-    taskEditing: 'Edit task',
-    dailySchedule: 'Daily schedule',
-    trash: 'Trash',
-    settings: 'Settings',
+  const modeNames: Record<HomeMode, TranslationKey> = {
+    running: 'modeRunning',
+    paused: 'modePaused',
+    pauseVoiceInput: 'modePauseVoice',
+    addTaskText: 'modeAddText',
+    addTaskVoice: 'modeAddVoice',
+    replanning: 'modeReplanning',
+    taskDetail: 'modeTaskDetail',
+    taskEditing: 'modeTaskEditing',
+    dailySchedule: 'modeDailySchedule',
+    trash: 'modeTrash',
+    settings: 'modeSettings',
   }
   const selectedTasks = tasks.filter((task) => task.date === selectedDate)
   const showClose = mode === 'addTaskText' || mode === 'dailySchedule'
@@ -111,9 +114,22 @@ export function HomeScreen({ tasks, mode, selectedDate, activeTaskIndex, onActiv
   }
 
   return (
-    <section className={styles.screen} aria-label={`Friday Home — ${modeNames[mode]}`}>
+    <section className={styles.screen} aria-label={`${t('appName')} — ${t(modeNames[mode])}`}>
       <div className={styles.ambientGlow} aria-hidden="true" />
       <Header compact={compactHeader} selectedDate={selectedDate} onSelectedDateChange={onSelectedDateChange} onOpenSchedule={onOpenSchedule} onOpenArchive={onOpenArchive} onOpenTrash={onOpenTrash} trashCount={deletedTasks.length} onOpenSettings={onOpenSettings} />
+      {/* Full-screen dismiss layer for the task card (issue 4): lives at the
+          screen root so the area BELOW the stage (the empty dock region) and
+          every gutter around the card also close it. The card itself has
+          z-index 6, the header sits at z-index 6, so both stay interactive;
+          only empty space is captured. */}
+      {mode === 'taskDetail' && selectedTask ? (
+        <button
+          type="button"
+          onClick={onCloseTask}
+          aria-label={t('closeTaskDetails')}
+          className={styles.detailBackdrop}
+        />
+      ) : null}
       {mode === 'settings' ? (
         <SettingsPanel
           taskCount={tasks.length}
@@ -137,7 +153,7 @@ export function HomeScreen({ tasks, mode, selectedDate, activeTaskIndex, onActiv
         />
       ) : null}
       <div className={styles.stage}>
-        {showClose ? <CloseButton onClose={closeCurrentMode} label="Close" /> : null}
+        {showClose ? <CloseButton onClose={closeCurrentMode} label={t('close')} /> : null}
         {mode === 'addTaskText' ? (
           <AddTaskForm
             selectedDate={selectedDate}
@@ -147,15 +163,7 @@ export function HomeScreen({ tasks, mode, selectedDate, activeTaskIndex, onActiv
             onDirtyChange={setAddTaskDirty}
           />
         ) : mode === 'taskDetail' && selectedTask ? (
-          <>
-            <button
-              type="button"
-              onClick={onCloseTask}
-              aria-label="Close task details"
-              style={{ position: 'absolute', inset: 0, zIndex: 5, padding: 0, background: 'transparent', border: 'none', cursor: 'default' }}
-            />
-            <TaskDetail task={selectedTask} onEdit={onEditTask} onDelete={() => setShowDeleteConfirm(true)} onArchive={onArchiveTask} />
-          </>
+          <TaskDetail task={selectedTask} onEdit={onEditTask} onDelete={() => setShowDeleteConfirm(true)} onArchive={onArchiveTask} />
         ) : mode === 'taskEditing' && selectedTask ? (
           <TaskEditor task={selectedTask} onSave={onUpdateTask} onCancel={onCancelEdit} onDelete={() => setShowDeleteConfirm(true)} />
         ) : mode === 'dailySchedule' ? (
@@ -198,9 +206,9 @@ export function HomeScreen({ tasks, mode, selectedDate, activeTaskIndex, onActiv
       ) : null}
       {showDiscardConfirm ? (
         <ConfirmModal
-          title="Discard this task?"
-          cancelLabel="Keep Editing"
-          confirmLabel="Discard"
+          title={t('discardTaskTitle')}
+          cancelLabel={t('keepEditing')}
+          confirmLabel={t('discard')}
           destructive
           onCancel={() => setShowDiscardConfirm(false)}
           onConfirm={onCancelAddTask}
@@ -208,9 +216,9 @@ export function HomeScreen({ tasks, mode, selectedDate, activeTaskIndex, onActiv
       ) : null}
       {showDeleteConfirm && selectedTask ? (
         <ConfirmModal
-          title="Delete this task?"
-          cancelLabel="Cancel"
-          confirmLabel="Delete"
+          title={t('deleteTaskTitle')}
+          cancelLabel={t('cancel')}
+          confirmLabel={t('delete')}
           destructive
           onCancel={() => setShowDeleteConfirm(false)}
           onConfirm={() => onDeleteTask(selectedTask.id)}

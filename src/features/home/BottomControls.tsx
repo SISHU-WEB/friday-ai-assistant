@@ -13,7 +13,7 @@ interface BottomControlsProps {
 }
 
 export function BottomControls({ mode, onAddTask, onAddTaskLongPress, onPause, onPauseLongPress }: BottomControlsProps) {
-  const { t, language } = useI18n()
+  const { t } = useI18n()
   const addTaskPress = useLongPress({ onPress: onAddTask, onLongPress: onAddTaskLongPress })
   const pausePress = useLongPress({ onPress: onPause, onLongPress: onPauseLongPress })
 
@@ -28,7 +28,7 @@ export function BottomControls({ mode, onAddTask, onAddTaskLongPress, onPause, o
   }
 
   const paused = mode === 'paused'
-  const holdHint = language === 'zh' ? '长按 ＋ 语音创建 · 长按 ⏸ 记录打断' : 'Hold + for voice · Hold ⏸ to log an interruption'
+  const holdHint = t('holdHint')
 
   return (
     <div className={styles.dock}>
@@ -42,7 +42,7 @@ export function BottomControls({ mode, onAddTask, onAddTaskLongPress, onPause, o
         <button
           className={`${styles.pause} ${paused ? styles.resume : ''} ${pausePress.isHolding ? styles.holding : ''}`}
           type="button"
-          aria-label={paused ? "Resume — I'm back" : 'Pause current task. Hold to describe an interruption'}
+          aria-label={paused ? t('resumeBack') : t('pauseAria')}
           {...pausePress.bind}
         >
           <span aria-hidden="true" />

@@ -10,6 +10,10 @@ import {
   itemCountLabel,
   uniqueFolderId,
 } from './archiveDisplay'
+import { useI18n } from '../../lib/i18n'
+import type { TranslationKey } from '../../lib/i18n'
+import { useVoiceRecognition } from '../../hooks/useVoiceRecognition'
+import type { SpeechError } from '../../lib/speech'
 import type { ArchiveFolder } from '../../types/archive'
 
 /**
@@ -34,6 +38,9 @@ const SPACING_COMPACT = 38
 
 const SPRING_STIFFNESS = 320
 const SPRING_DAMPING = 28
+
+/** Deck visual scale inside the landscape two-column layout (see CSS). */
+const LANDSCAPE_DECK_SCALE = 0.75
 
 const WHITE_SHAPE = '/folder-white-shape@3x.png'
 const GREEN_SHAPE = '/folder-green-shape@3x.png'
@@ -67,6 +74,16 @@ function bezier(t: number) {
   }
 }
 
+/**
+ * Handle travel window along the arc. 0.10/0.90 (instead of 0.08/0.92) keeps
+ * the whole handle inside the viewport at both ends once the 0.75 landscape
+ * mapping is applied (issue 1).
+ */
+const ARC_T0 = 0.1
+const ARC_T1 = 0.9
+/** On-screen handle travel for the full folder span, in arc-local px. */
+const ARC_TRAVEL_X = bezier(ARC_T1).x - bezier(ARC_T0).x
+
 function vibrate(ms: number) {
   try {
     navigator.vibrate?.(ms)
@@ -76,12 +93,12 @@ function vibrate(ms: number) {
 }
 
 /** Keyboard activation for the div-based controls without touching their styling. */
-function clickable(label: string, action: () => void) {
+function clickable(label: string, action: (event?: React.MouseEvent) => void, role: 'button' | 'menuitem' = 'button') {
   return {
-    role: 'button' as const,
+    role,
     tabIndex: 0,
     'aria-label': label,
-    onClick: action,
+    onClick: (event: React.MouseEvent) => action(event),
     onKeyDown: (event: ReactKeyboardEvent) => {
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault()
@@ -108,6 +125,10 @@ interface ArchiveViewProps {
 }
 
 export function ArchiveView({ folders, onFoldersChange, onBack, onExport, onOpenSettings, reveal }: ArchiveViewProps) {
+  const { t, language } = useI18n()
+  const lang = language
+  const { transcript, listening, supported: voiceSupported, error: voiceError, start: startVoice, stop: stopVoice } = useVoiceRecognition()
+
   const reducedMotion = useMemo(
     () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     [],
@@ -131,7 +152,6 @@ export function ArchiveView({ folders, onFoldersChange, onBack, onExport, onOpen
   const [menuOpen, setMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [recording, setRecording] = useState(false)
   const [flipDragging, setFlipDragging] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -164,6 +184,8 @@ export function ArchiveView({ folders, onFoldersChange, onBack, onExport, onOpen
   const dragRef = useRef({ dragging: false, buttonDragging: false, startX: 0, startPos: 0, buttonStartX: 0, buttonStartPos: 0 })
   const pointerHistRef = useRef<Array<{ x: number; t: number }>>([])
   const movedRef = useRef(false)
+  /** Current visual scale of the folder deck (1 in portrait, 0.75 in landscape). */
+  const deckScaleRef = useRef(1)
   const [scale, setScale] = useState(1)
 
   countRef.current = folders.length
@@ -173,6 +195,18 @@ export function ArchiveView({ folders, onFoldersChange, onBack, onExport, onOpen
     setToast(message)
     window.clearTimeout(toastTimerRef.current)
     toastTimerRef.current = window.setTimeout(() => setToast(null), 1500)
+  }, [])
+
+  // Landscape rearranges the deck at 0.75; pointer math must divide by the
+  // visual scale so a drag maps 1:1 to what the finger sees (issue 1).
+  useEffect(() => {
+    const mq = window.matchMedia('(orientation: landscape) and (max-height: 500px)')
+    const update = () => {
+      deckScaleRef.current = mq.matches ? LANDSCAPE_DECK_SCALE : 1
+    }
+    update()
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
   }, [])
 
   const applyPos = useCallback((position: number) => {
@@ -188,9 +222,14 @@ export function ArchiveView({ folders, onFoldersChange, onBack, onExport, onOpen
     if (button) {
       const span = Math.max(1, countRef.current - 1)
       const t = Math.max(0, Math.min(1, position / span))
-      const point = bezier(0.08 + t * 0.84)
-      button.style.left = `${-19 + point.x}px`
-      button.style.top = `${202 + point.y}px`
+      const point = bezier(ARC_T0 + t * (ARC_T1 - ARC_T0))
+      // In portrait the wrap fills the whole phone, so the JS values are phone
+      // canvas coords. In landscape the wrap becomes the arc's own box
+      // (-19,202 442x50, scaled 0.75): coordinates must be arc-LOCAL, or the
+      // handle lands on the card row and spills past the left edge (issue 1).
+      const landscape = deckScaleRef.current < 1
+      button.style.left = `${landscape ? point.x : -19 + point.x}px`
+      button.style.top = `${landscape ? point.y : 202 + point.y}px`
     }
 
     const index = Math.round(position)
@@ -296,6 +335,67 @@ export function ArchiveView({ folders, onFoldersChange, onBack, onExport, onOpen
 
   useEffect(() => () => window.clearTimeout(toastTimerRef.current), [])
 
+  // ------------------------------------------------------------- voice input
+  const voiceTouchedRef = useRef(false)
+  const wasListeningRef = useRef(false)
+  const speechLang = lang === 'zh' ? 'zh-CN' : 'en-US'
+
+  const voiceErrorKey = (code: SpeechError): TranslationKey => {
+    switch (code) {
+      case 'not-allowed': return 'voiceErrNotAllowed'
+      case 'no-speech': return 'voiceErrNoSpeech'
+      case 'audio-capture': return 'voiceErrAudioCapture'
+      case 'network': return 'voiceErrNetwork'
+      case 'unsupported': return 'voiceErrUnsupported'
+      default: return 'voiceErrUnknown'
+    }
+  }
+
+  // Surface recognition failures as toasts, but only for sessions the user
+  // actually started (never on mount just because the API is unavailable).
+  useEffect(() => {
+    if (voiceError && voiceTouchedRef.current) {
+      voiceTouchedRef.current = false
+      showToast(t(voiceErrorKey(voiceError)))
+    }
+  }, [voiceError, showToast, t])
+
+  // When a session ends with recognised speech, open the document sheet with
+  // the transcript prefilled as the title (issue 6: full voice -> document flow).
+  useEffect(() => {
+    if (wasListeningRef.current && !listening) {
+      wasListeningRef.current = false
+      const text = transcript.trim()
+      if (text) {
+        setDocTitle(text.slice(0, 60))
+        setSheet(true)
+        sheetSpringRef.current?.setOpen(true)
+        const mask = sheetMaskRef.current
+        if (mask) {
+          mask.style.opacity = '1'
+          mask.style.pointerEvents = 'auto'
+        }
+        window.setTimeout(() => titleInputRef.current?.focus(), 400)
+      }
+    }
+    if (listening) wasListeningRef.current = true
+  }, [listening, transcript])
+
+  const toggleRecording = useCallback(
+    (event?: React.MouseEvent) => {
+      event?.stopPropagation()
+      if (listening) {
+        stopVoice()
+        vibrate(10)
+        return
+      }
+      voiceTouchedRef.current = true
+      startVoice(speechLang)
+      vibrate(10)
+    },
+    [listening, speechLang, startVoice, stopVoice],
+  )
+
   // ------------------------------------------------------------- name prompt
   const askName = useCallback((title: string, okLabel: string) => {
     setPromptValue('')
@@ -319,6 +419,16 @@ export function ArchiveView({ folders, onFoldersChange, onBack, onExport, onOpen
       return () => window.clearTimeout(timer)
     }
   }, [promptTitle])
+
+  // Escape closes the more-options menu (issue 3).
+  useEffect(() => {
+    if (!menuOpen) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuOpen(false)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [menuOpen])
 
   // ------------------------------------------------------------- drag handling
   const rubberBand = (overshoot: number, constant: number) => {
@@ -384,10 +494,11 @@ export function ArchiveView({ folders, onFoldersChange, onBack, onExport, onOpen
   const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     pushPointer(event.clientX)
     const drag = dragRef.current
+    const s = deckScaleRef.current
 
     if (drag.buttonDragging) {
       const span = Math.max(1, countRef.current - 1)
-      posRef.current = clampPos(drag.buttonStartPos + ((event.clientX - drag.buttonStartX) / 454) * span)
+      posRef.current = clampPos(drag.buttonStartPos + ((event.clientX - drag.buttonStartX) / (ARC_TRAVEL_X * s)) * span)
       applyPos(posRef.current)
       return
     }
@@ -395,18 +506,19 @@ export function ArchiveView({ folders, onFoldersChange, onBack, onExport, onOpen
 
     const dx = event.clientX - drag.startX
     if (Math.abs(dx) > 8) movedRef.current = true
-    posRef.current = clampPos(drag.startPos - dx / spacingRef.current)
+    posRef.current = clampPos(drag.startPos - dx / (spacingRef.current * s))
     applyPos(posRef.current)
   }
 
   const endDrag = () => {
     const drag = dragRef.current
+    const s = deckScaleRef.current
 
     if (drag.buttonDragging) {
       drag.buttonDragging = false
       setFlipDragging(false)
       const span = Math.max(1, countRef.current - 1)
-      const posVel = (getVelocity() / 454) * span
+      const posVel = (getVelocity() / (454 * s)) * span
       const targetIdx = Math.round(posRef.current + projectedTravel(posVel))
       if (reducedMotion) {
         posRef.current = targetIdx
@@ -419,7 +531,7 @@ export function ArchiveView({ folders, onFoldersChange, onBack, onExport, onOpen
     if (!drag.dragging) return
 
     drag.dragging = false
-    const posVel = -getVelocity() / spacingRef.current
+    const posVel = -getVelocity() / (spacingRef.current * s)
     const targetIdx = Math.round(posRef.current + projectedTravel(posVel))
     if (reducedMotion) {
       posRef.current = targetIdx
@@ -470,7 +582,7 @@ export function ArchiveView({ folders, onFoldersChange, onBack, onExport, onOpen
 
   const createFolder = useCallback(
     async (closeSheetAfter: boolean) => {
-      const name = await askName('New Folder', 'Create')
+      const name = await askName(t('newFolderTitle'), t('createBtn'))
       if (!name) return
       const trimmed = name.trim()
       if (!trimmed) return
@@ -484,21 +596,21 @@ export function ArchiveView({ folders, onFoldersChange, onBack, onExport, onOpen
       ])
       if (closeSheetAfter) setSheet(false)
       vibrate(8)
-      showToast(`Folder "${trimmed}" created`)
+      showToast(t('folderCreatedToast', { name: trimmed }))
     },
-    [askName, folders, onFoldersChange, setSheet, showToast],
+    [askName, folders, onFoldersChange, setSheet, showToast, t],
   )
 
   const handleRenameFolder = useCallback(async () => {
     setMenuOpen(false)
     if (!currentFolder) return
     const index = currentIndex
-    const name = await askName(`Rename "${currentFolder.name}"`, 'Rename')
+    const name = await askName(t('renameTitle', { name: currentFolder.name }), t('renameBtn'))
     if (!name || !name.trim()) return
     const trimmed = name.trim()
     onFoldersChange(folders.map((folder, i) => (i === index ? { ...folder, name: trimmed, updatedAt: new Date().toISOString() } : folder)))
-    showToast(`Renamed to "${trimmed}"`)
-  }, [askName, currentFolder, currentIndex, folders, onFoldersChange, showToast])
+    showToast(t('renamedToast', { name: trimmed }))
+  }, [askName, currentFolder, currentIndex, folders, onFoldersChange, showToast, t])
 
   const handleSaveDocument = useCallback(() => {
     const title = docTitle.trim()
@@ -534,23 +646,26 @@ export function ArchiveView({ folders, onFoldersChange, onBack, onExport, onOpen
     applyPos(posRef.current)
     startSpringRef.current(Math.round(posRef.current), 0)
     vibrate(6)
-    showToast(next ? 'Compact view' : 'Normal view')
-  }, [applyPos, compact, showToast])
+    showToast(next ? t('spacingCompact') : t('spacingNormal'))
+  }, [applyPos, compact, showToast, t])
+
+  const itemCountText = currentFolder ? itemCountLabel(folderItemCount(currentFolder), lang) : `0 ${lang === 'zh' ? '项' : 'items'}`
+  const fieldText = listening ? (transcript || t('voiceListeningHint')) : currentFolder ? t('saveToName', { name: currentFolder.name }) : t('saveToArchive')
 
   return (
     <div className={styles.viewport} ref={viewportRef}>
       <div className={styles.phone} ref={phoneRef} style={{ transform: `scale(${scale})` }} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={endDrag} onPointerCancel={endDrag} onPointerLeave={endDrag}>
-        <div className={styles.back} {...clickable('Back', handleBack)}>
+        <div className={styles.back} {...clickable(t('back'), handleBack)}>
           &larr;
         </div>
-        <div className={styles.title}>Archive</div>
+        <div className={styles.title}>{t('archiveTitle')}</div>
         <div
           className={`${styles.signal} ${breathing ? styles.breathe : ''}`}
-          {...clickable('Toggle focus breathing', () => {
+          {...clickable(t('toggleBreathing'), () => {
             const next = !breathing
             setBreathing(next)
             vibrate(6)
-            showToast(next ? 'Focus breathing: ON' : 'Focus breathing: OFF')
+            showToast(next ? t('breathingOn') : t('breathingOff'))
           })}
         >
           <i />
@@ -560,7 +675,8 @@ export function ArchiveView({ folders, onFoldersChange, onBack, onExport, onOpen
           className={styles.more}
           role="button"
           tabIndex={0}
-          aria-label="More options"
+          aria-label={t('moreOptions')}
+          aria-expanded={menuOpen}
           onClick={(event) => {
             event.stopPropagation()
             setMenuOpen((open) => !open)
@@ -578,29 +694,29 @@ export function ArchiveView({ folders, onFoldersChange, onBack, onExport, onOpen
           &middot;&middot;&middot;
         </div>
 
-        <div className={`${styles.chip} ${styles.folders} ${styles.active}`} {...clickable('Folders', () => {
+        <div className={`${styles.chip} ${styles.folders} ${styles.active}`} {...clickable(t('foldersWord'), () => {
           vibrate(6)
-          showToast('Folder view')
+          showToast(t('folderViewToast'))
         })}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d={FOLDER_PATH} />
           </svg>
-          Folders ({folders.length})
+          {t('foldersCount', { n: folders.length })}
         </div>
-        <div className={`${styles.chip} ${styles.newfolder}`} {...clickable('New folder', () => void createFolder(false))}>
+        <div className={`${styles.chip} ${styles.newfolder}`} {...clickable(t('newFolder'), () => void createFolder(false))}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d={PLUS_PATH} />
           </svg>
-          New Folder
+          {t('newFolder')}
         </div>
-        <div className={`${styles.chip} ${styles.small} ${compact ? styles.active : ''}`} {...clickable('Toggle folder spacing', toggleCompact)}>
+        <div className={`${styles.chip} ${styles.small} ${compact ? styles.active : ''}`} {...clickable(t('toggleSpacing'), toggleCompact)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <rect x="4" y="4" width="16" height="16" rx="2" />
             <path d="M9 4v16" />
           </svg>
-          {compact ? 'Large \u2191' : 'Small \u2193'}
+          {compact ? t('sizeLarge') : t('sizeSmall')}
         </div>
-        <div className={`${styles.chip} ${styles.search}`} {...clickable('Search', () => {
+        <div className={`${styles.chip} ${styles.search}`} {...clickable(t('arcSearch'), () => {
           setSearchOpen(true)
           vibrate(6)
           window.setTimeout(() => document.getElementById('archive-search-input')?.focus(), 350)
@@ -614,10 +730,12 @@ export function ArchiveView({ folders, onFoldersChange, onBack, onExport, onOpen
           <path d="M-6 45 C114 12 265 2 448 45" stroke="#16875b" strokeOpacity="0.42" strokeWidth="0.75" />
         </svg>
 
-        <div className={`${styles.flipBtn} ${flipDragging ? styles.dragging : ''}`} ref={flipBtnRef} data-arc-flip {...clickable('Drag to browse folders', () => {})}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M8 7L4 12l4 5M16 7l4 5-4 5M4 12h16" />
-          </svg>
+        <div className={styles.flipWrap}>
+          <div className={`${styles.flipBtn} ${flipDragging ? styles.dragging : ''}`} ref={flipBtnRef} data-arc-flip {...clickable(t('dragHandle'), () => {})}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M8 7L4 12l4 5M16 7l4 5-4 5M4 12h16" />
+            </svg>
+          </div>
         </div>
 
         <div className={styles.stream}>
@@ -632,7 +750,7 @@ export function ArchiveView({ folders, onFoldersChange, onBack, onExport, onOpen
                 }
               }}
               className={`${styles.card} ${index === selectedIdx ? styles.sel : ''}`}
-              {...clickable(`Open ${folder.name}`, () => {
+              {...clickable(t('openNamedTask', { name: folder.name }), () => {
                 if (movedRef.current) return
                 if (index === Math.round(posRef.current)) setFolderView(true)
                 else startSpringRef.current(index, 0)
@@ -650,21 +768,21 @@ export function ArchiveView({ folders, onFoldersChange, onBack, onExport, onOpen
           ))}
         </div>
 
-        <div className={styles.info} data-arc-block {...clickable('Open folder', () => setFolderView(true))}>
+        <div className={styles.info} data-arc-block {...clickable(t('foldersWord'), () => setFolderView(true))}>
           <div className={styles.tile}>
             <svg viewBox="0 0 24 24" fill="none" stroke="#0ee88a" strokeWidth="1.8">
               <path d={FOLDER_PATH} />
             </svg>
           </div>
-          <div className={styles.eyebrow}>FOLDER</div>
-          <div className={styles.h}>{currentFolder?.name ?? '\u2014'}</div>
-          <div className={styles.desc}>{currentFolder ? folderDescription(currentFolder) : 'No folders yet.'}</div>
+          <div className={styles.eyebrow}>{t('folderWord')}</div>
+          <div className={styles.h}>{currentFolder?.name ?? '—'}</div>
+          <div className={styles.desc}>{currentFolder ? folderDescription(currentFolder, lang) : t('noFoldersYet')}</div>
           <div className={styles.meta}>
             <span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d={FOLDER_PATH} />
               </svg>
-              <span>{currentFolder ? itemCountLabel(folderItemCount(currentFolder)) : '0 items'}</span>
+              <span>{itemCountText}</span>
             </span>
             <span className={styles.divider} />
             <span>
@@ -672,32 +790,29 @@ export function ArchiveView({ folders, onFoldersChange, onBack, onExport, onOpen
                 <circle cx="12" cy="12" r="9" />
                 <path d="M12 7v5l3 2" />
               </svg>
-              <span>{currentFolder ? folderUpdatedLabel(currentFolder) : 'Created just now'}</span>
+              <span>{currentFolder ? folderUpdatedLabel(currentFolder, lang) : t('createdJustNow')}</span>
             </span>
           </div>
         </div>
 
-        <div className={styles.input} data-arc-block {...clickable('New document', openSheet)}>
+        <div className={styles.input} data-arc-block {...clickable(t('newDocument'), openSheet)}>
           <div
             className={styles.clip}
-            {...clickable('Attach a file', () => {
+            {...clickable(t('attachFile'), (event) => {
+              event?.stopPropagation()
               vibrate(6)
-              showToast('Attach photo or file')
+              showToast(t('attachToast'))
             })}
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path d="M21.4 11.05 12.25 20.2a5 5 0 0 1-7.07-7.07l9.19-9.19a3.25 3.25 0 0 1 4.6 4.6l-9.2 9.19a1.5 1.5 0 0 1-2.12-2.12l8.49-8.49" />
             </svg>
           </div>
-          <div className={styles.field}>Save to {currentFolder?.name ?? 'Archive'}&hellip;</div>
+          <div className={styles.field}>{fieldText}</div>
           <div
-            className={`${styles.mic} ${recording ? styles.recording : ''}`}
-            {...clickable(recording ? 'Stop recording' : 'Record a voice memo', () => {
-              const next = !recording
-              setRecording(next)
-              vibrate(10)
-              showToast(next ? '\u25CF Recording voice memo\u2026' : 'Recording saved')
-            })}
+            className={`${styles.mic} ${listening ? styles.recording : ''}`}
+            title={voiceSupported ? (listening ? t('stopRecording') : t('recordVoice')) : t('voiceErrUnsupported')}
+            {...clickable(listening ? t('stopRecording') : t('recordVoice'), toggleRecording)}
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="9" y="3" width="6" height="11" rx="3" />
@@ -708,37 +823,44 @@ export function ArchiveView({ folders, onFoldersChange, onBack, onExport, onOpen
 
         <div className={`${styles.toast} ${toast ? styles.show : ''}`}>{toast ?? ''}</div>
 
-        <div className={`${styles.menuPopup} ${menuOpen ? styles.show : ''}`} data-arc-block>
-          <div className={styles.item} {...clickable('Rename folder', () => void handleRenameFolder())}>
-            Rename Folder
+        {/* Click / Escape anywhere on this mask dismisses the more-options menu (issue 3). */}
+        <div
+          className={`${styles.menuMask} ${menuOpen ? styles.show : ''}`}
+          data-arc-block
+          aria-hidden={!menuOpen}
+          onClick={() => setMenuOpen(false)}
+        />
+        <div className={`${styles.menuPopup} ${menuOpen ? styles.show : ''}`} data-arc-block role="menu" aria-label={t('moreOptions')}>
+          <div className={styles.item} {...clickable(t('renameFolder'), () => void handleRenameFolder(), 'menuitem')}>
+            {t('renameFolder')}
           </div>
           <div
             className={styles.item}
-            {...clickable('Sort by recent', () => {
+            {...clickable(t('sortByRecent'), () => {
               setMenuOpen(false)
-              showToast('Sorted by recent')
-            })}
+              showToast(t('sortedByRecent'))
+            }, 'menuitem')}
           >
-            Sort by Recent
+            {t('sortByRecent')}
           </div>
           <div
             className={styles.item}
-            {...clickable('Export all data', () => {
+            {...clickable(t('exportAll'), () => {
               setMenuOpen(false)
               onExport()
-              showToast('Export started')
-            })}
+              showToast(t('exportStarted'))
+            }, 'menuitem')}
           >
-            Export All
+            {t('exportAll')}
           </div>
           <div
             className={styles.item}
-            {...clickable('Open settings', () => {
+            {...clickable(t('settings'), () => {
               setMenuOpen(false)
               onOpenSettings()
-            })}
+            }, 'menuitem')}
           >
-            Settings
+            {t('settings')}
           </div>
         </div>
 
@@ -750,27 +872,27 @@ export function ArchiveView({ folders, onFoldersChange, onBack, onExport, onOpen
             <input
               id="archive-search-input"
               type="text"
-              placeholder="Search documents and folders&hellip;"
+              placeholder={t('arcSearchPlaceholder')}
               value={searchQuery}
               onChange={(event) => {
                 setSearchQuery(event.target.value)
-                if (event.target.value.trim()) showToast(`Searching: "${event.target.value}"`)
+                if (event.target.value.trim()) showToast(t('arcSearching', { q: event.target.value }))
               }}
             />
           </div>
           <div className={styles.searchHint}>
-            Search across all folders and tags.
+            {t('arcSearchHint1')}
             <br />
-            Start typing to see results.
+            {t('arcSearchHint2')}
           </div>
           <div
             className={styles.searchClose}
-            {...clickable('Close search', () => {
+            {...clickable(t('close'), () => {
               setSearchOpen(false)
               setSearchQuery('')
             })}
           >
-            Close
+            {t('close')}
           </div>
         </div>
 
@@ -781,7 +903,7 @@ export function ArchiveView({ folders, onFoldersChange, onBack, onExport, onOpen
             className={styles.npInput}
             ref={promptInputRef}
             type="text"
-            placeholder="Folder name&hellip;"
+            placeholder={t('folderNamePlaceholder')}
             maxLength={40}
             value={promptValue}
             onChange={(event) => setPromptValue(event.target.value)}
@@ -794,7 +916,7 @@ export function ArchiveView({ folders, onFoldersChange, onBack, onExport, onOpen
           />
           <div className={styles.npActions}>
             <button className={`${styles.npBtn} ${styles.cancel}`} type="button" onClick={() => closeName(null)}>
-              Cancel
+              {t('cancel')}
             </button>
             <button
               className={`${styles.npBtn} ${styles.ok}`}
@@ -819,57 +941,57 @@ export function ArchiveView({ folders, onFoldersChange, onBack, onExport, onOpen
         />
         <div className={styles.sheet} ref={sheetRef} data-arc-block aria-hidden={!sheetOpen} inert={!sheetOpen}>
           <div className={styles.grabber} />
-          <div className={styles.sheetTitle}>New Document</div>
-          <div className={styles.sheetSub}>Create a note and save it to the selected folder.</div>
-          <div className={styles.label}>TITLE</div>
+          <div className={styles.sheetTitle}>{t('newDocument')}</div>
+          <div className={styles.sheetSub}>{t('newDocSub')}</div>
+          <div className={styles.label}>{t('titleLabel')}</div>
           <input
             className={styles.titleInput}
             ref={titleInputRef}
             type="text"
-            placeholder="Give it a title&hellip;"
+            placeholder={t('giveTitle')}
             maxLength={60}
             value={docTitle}
             onChange={(event) => setDocTitle(event.target.value)}
           />
           <div className={styles.charCount}>{docTitle.length} / 60</div>
-          <div className={styles.label}>SAVE TO</div>
+          <div className={styles.label}>{t('saveToLabel')}</div>
           <div className={styles.folderPick}>
             <div className={styles.fIcon}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d={FOLDER_PATH} />
               </svg>
             </div>
-            <div className={styles.fName}>{currentFolder?.name ?? 'Archive'}</div>
+            <div className={styles.fName}>{currentFolder?.name ?? t('archiveTitle')}</div>
             <div className={styles.fChev}>&rsaquo;</div>
           </div>
-          <div className={styles.newFolderRow} {...clickable('New folder', () => void createFolder(true))}>
+          <div className={styles.newFolderRow} {...clickable(t('newFolder'), () => void createFolder(true))}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d={PLUS_PATH} />
             </svg>
-            New Folder
+            {t('newFolder')}
           </div>
           <div className={styles.actions}>
             <button className={`${styles.btn} ${styles.cancel}`} onClick={() => setSheet(false)}>
-              Cancel
+              {t('cancel')}
             </button>
             <button className={`${styles.btn} ${styles.save}`} onClick={handleSaveDocument}>
-              Save Document
+              {t('saveDocument')}
             </button>
           </div>
         </div>
 
         <div className={styles.slideover} ref={folderViewRef} data-arc-block aria-hidden={!folderViewOpen} inert={!folderViewOpen}>
           <div className={styles.soHeader}>
-            <div className={styles.soBack} {...clickable('Back to folders', () => setFolderView(false))}>
+            <div className={styles.soBack} {...clickable(t('backToFolders'), () => setFolderView(false))}>
               &larr;
             </div>
-            <div className={styles.soTitle}>{currentFolder?.name ?? 'Archive'}</div>
-            <div className={styles.soCount}>{currentFolder ? itemCountLabel(folderItemCount(currentFolder)) : '0 items'}</div>
+            <div className={styles.soTitle}>{currentFolder?.name ?? t('archiveTitle')}</div>
+            <div className={styles.soCount}>{itemCountText}</div>
           </div>
           <div className={styles.soList}>
             {currentFolder && currentFolder.items.length > 0 ? (
               currentFolder.items.map((item, index) => (
-                <div key={item.id} className={styles.docItem} {...clickable(`Open ${item.title}`, () => openReader(item.title))}>
+                <div key={item.id} className={styles.docItem} {...clickable(t('openNamedTask', { name: item.title }), () => openReader(item.title))}>
                   <div className={styles.docIcon}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       {DOC_ICON_MARKUP}
@@ -877,16 +999,16 @@ export function ArchiveView({ folders, onFoldersChange, onBack, onExport, onOpen
                   </div>
                   <div className={styles.docBody}>
                     <div className={styles.docName}>{item.title}</div>
-                    <div className={styles.docMeta}>{documentTimeLabel(item.createdAt, item.updatedAt, index === 0)}</div>
+                    <div className={styles.docMeta}>{documentTimeLabel(item.createdAt, item.updatedAt, index === 0, lang)}</div>
                   </div>
                   <div className={styles.docChev}>&rsaquo;</div>
                 </div>
               ))
             ) : (
-              <div style={{ textAlign: 'center', padding: '60px 20px', color: '#4a6055', fontSize: 13 }}>
-                No documents yet.
+              <div style={{ textAlign: 'center', padding: '60px 20px', color: '#7e9388', fontSize: 13 }}>
+                {t('noDocs1')}
                 <br />
-                Use the input below to add one.
+                {t('noDocs2')}
               </div>
             )}
           </div>
@@ -894,29 +1016,27 @@ export function ArchiveView({ folders, onFoldersChange, onBack, onExport, onOpen
 
         <div className={styles.reader} ref={readerRef} data-arc-block aria-hidden={!readerOpen} inert={!readerOpen}>
           <div className={styles.rHeader}>
-            <div className={styles.rBack} {...clickable('Close document', () => setReader(false))}>
+            <div className={styles.rBack} {...clickable(t('close'), () => setReader(false))}>
               &larr;
             </div>
-            <div className={styles.rTitle}>{readerTitle || 'Document'}</div>
+            <div className={styles.rTitle}>{readerTitle || t('documentDefault')}</div>
           </div>
           <div className={styles.rBody}>
             <p>
-              This is a preview of <strong style={{ color: '#fff' }}>{readerTitle}</strong>. The full document editor and viewer would appear here in
-              the production app.
+              {t('readerPreviewLead')} <strong style={{ color: '#fff' }}>{readerTitle}</strong>{t('readerPreviewTrail')}
             </p>
-            <h3>Overview</h3>
+            <h3>{t('readerOverview')}</h3>
             <p>
-              This document was created and stored in the {currentFolder?.name ?? 'Archive'} folder. You can edit the content, add tags, attach files,
-              and organize it alongside other documents.
+              {t('readerStoredLead')} {currentFolder?.name ?? t('archiveTitle')} {t('readerStoredTrail')}
             </p>
-            <h3>Recent edits</h3>
+            <h3>{t('readerRecentEdits')}</h3>
             <p>
-              Last modified: just now by you.
+              {t('readerLastModified')}
               <br />
-              Created: recently.
+              {t('readerCreated')}
             </p>
-            <h3>Notes</h3>
-            <p>Use the bottom input bar to append thoughts, attach screenshots, or transcribe voice memos to this document.</p>
+            <h3>{t('readerNotes')}</h3>
+            <p>{t('readerNotesBody')}</p>
           </div>
         </div>
       </div>

@@ -73,9 +73,9 @@
     color: #d6e4dc; font-size: 12px; font-weight: 600;
     letter-spacing: 0.02em;
     display: flex; align-items: center; justify-content: center; gap: 5px; z-index: 50;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
+  cursor: pointer;
+  transition: transform 120ms ease-out, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
   .chip:active { transform: scale(0.95); }
   .chip.active { background: rgba(14,40,28,0.8); border-color: rgba(14,232,138,0.4); color: #6fdca0; }
   .chip svg { width: 13px; height: 13px; opacity: 0.8; }
@@ -89,6 +89,17 @@
     position: absolute; left: -19px; top: 202px;
     width: 442px; height: 50px; pointer-events: none; z-index: 1;
   }
+
+  /* Contains the flip button in the same canvas-space box as .phone, so the
+     JS-written left/top keep their original meaning. The wrapper itself never
+     intercepts touches; only the button does. In landscape the wrapper gets the
+     exact same translate+scale as .arc/.stream, keeping the handle glued to
+     the arc at every scroll position (issue 1). */
+  .flipWrap {
+    position: absolute; inset: 0;
+    pointer-events: none;
+  }
+  .flipWrap .flipBtn { pointer-events: auto; }
 
   .flipBtn {
     position: absolute;
@@ -211,7 +222,7 @@
   .input:active { transform: scale(0.98); }
   .input .clip { width: 50px; height: 50px; margin-left: 7px; border-radius: 50%; display:flex;align-items:center;justify-content:center; color:#7e9388; cursor:pointer; transition: color 0.2s, background 0.2s; }
   .input .clip:active { color: var(--arc-green); background: rgba(14,232,138,0.1); }
-  .input .field { flex: 1; margin-left: 8px; color: #5f7368; font-size: 13px; letter-spacing: 0.01em; }
+  .input .field { flex: 1; min-width: 0; margin-left: 8px; color: #5f7368; font-size: 13px; letter-spacing: 0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .input .mic {
     width: 52px; height: 52px; margin-right: 7px; border-radius: 50%;
     background: linear-gradient(160deg,#15e88c,#07a85e);
@@ -227,7 +238,7 @@
     position: absolute; left: 0; top: 485px;
     width: 402px; display: flex; justify-content: center; gap: 6px; z-index: 25;
   }
-  .dots span { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,0.2); transition: all 0.25s ease-out; }
+  .dots span { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,0.2); transition: background-color 0.25s ease-out, box-shadow 0.25s ease-out, width 0.25s ease-out, border-radius 0.25s ease-out; }
   .dots span.on { background: var(--arc-green); box-shadow: 0 0 6px var(--arc-green); width: 16px; border-radius: 3px; }
 
   .toast {
@@ -244,9 +255,23 @@
   }
   .toast.show { opacity: 1; }
 
+  /* Transparent full-screen layer: tapping any area outside the popup (issue 3)
+     or pressing Escape closes the more-options menu. */
+  .menuMask {
+    position: absolute; inset: 0;
+    z-index: 145;
+    background: transparent;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .menuMask.show { opacity: 1; pointer-events: auto; }
+
   .menuPopup {
-    position: absolute; left: 280px; top: 108px;
-    width: 140px;
+    position: absolute; left: auto; right: 18px; top: 104px;
+    width: 148px;
+    max-height: calc(100% - 120px);
+    overflow-y: auto;
+    box-sizing: border-box;
     background: rgba(12,22,17,0.97);
     border: 1px solid rgba(255,255,255,0.1);
     border-radius: 16px;
@@ -287,11 +312,11 @@
     flex: 1; background: transparent; border: none; outline: none;
     color: #fff; font-size: 15px; font-family: inherit; height: 100%;
   }
-  .searchOverlay .searchRow input::placeholder { color: #4a6055; }
+  .searchOverlay .searchRow input::placeholder { color: #7e9388; }
   .searchOverlay .searchClose {
     margin-top: 16px; text-align: center; color: #6fdca0; font-size: 14px; font-weight: 600; cursor: pointer;
   }
-  .searchOverlay .searchHint { color: #4a6055; font-size: 12px; margin-top: 24px; line-height: 1.8; }
+  .searchOverlay .searchHint { color: #7e9388; font-size: 12px; margin-top: 24px; line-height: 1.8; }
 
   .namePromptMask {
     position: absolute; inset: 0;
@@ -322,7 +347,7 @@
     border-radius: 12px; color: #fff; font-size: 15px;
     padding: 12px 14px; outline: none; font-family: inherit;
   }
-  .namePrompt .npInput::placeholder { color: #4a6055; }
+  .namePrompt .npInput::placeholder { color: #7e9388; }
   .namePrompt .npActions { display: flex; gap: 10px; margin-top: 18px; }
   .namePrompt .npBtn {
     flex: 1; height: 46px; border-radius: 23px; border: none;
@@ -362,7 +387,7 @@
     color: #fff; font-size: 15px; padding: 0 16px; outline: none; margin-bottom: 6px;
     font-family: inherit;
   }
-  .sheet .titleInput::placeholder { color: #4a6055; }
+  .sheet .titleInput::placeholder { color: #7e9388; }
   .sheet .folderPick {
     display: flex; align-items: center; gap: 10px;
     padding: 12px 14px; border-radius: 14px;
@@ -401,7 +426,8 @@
   .slideover .soBack {
     width: 41px; height: 41px; border-radius: 50%;
     background: rgba(20,32,26,0.85); border: 1px solid rgba(255,255,255,0.08);
-    color: #cfe0d6; font-size: 18px; cursor: pointer;
+    color: #cfe0d6; font-size: 18px; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
     transition: transform 100ms ease-out;
   }
   .slideover .soBack:active { transform: scale(0.92); }
@@ -424,7 +450,7 @@
   .docItem .docBody { flex: 1; min-width: 0; }
   .docItem .docName { color: #e8f0eb; font-size: 14px; font-weight: 600; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .docItem .docMeta { color: #96a49b; font-size: 12px; }
-  .docItem .docChev { color: #4a6055; font-size: 16px; flex-shrink: 0; }
+  .docItem .docChev { color: #7e9388; font-size: 16px; flex-shrink: 0; }
 
   .reader {
     position: absolute; left: 0; top: 0;
@@ -439,7 +465,7 @@
   .reader .rBack {
     width: 41px; height: 41px; border-radius: 50%;
     background: rgba(20,32,26,0.85); border: 1px solid rgba(255,255,255,0.08);
-    display: flex; align-items: center; justify-content: center; color: #cfe0d6; font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; color: #cfe0d6; font-size: 18px; line-height: 1; cursor: pointer;
     transition: transform 100ms ease-out;
   }
   .reader .rBack:active { transform: scale(0.92); }
@@ -580,18 +606,33 @@
     .toast { top: 54px; }
 
     /* --- left column: folder deck ----------------------------------------- */
-    /* active card centre = stream.left(0-ish) + CENTER_X(155) + 45 ~= 170.
-       The deck is authored at 90x318 per card, so scale the whole stream to
-       keep it inside the ~320px left column; card hit areas follow the
-       transform and the drag delta math is viewport based. */
-    .stream { left: -30px; top: 56px; height: 330px; transform: scale(0.78); transform-origin: top left; }
-    .arc { left: -45px; top: 56px; width: 345px; height: 39px; }
-    /* JS writes canvas-space left/top (arc sat at y:202, stream at y:202).
-       With transform-origin at the element centre, the visual centre of the
-       button is origin + translate; solve translate so it lands on the
-       scaled arc: x' = 0.78*178.4 - 69 ~= 109 ; y' = 218.5 - 150 ~= 69 */
-    .flipBtn { transform: translate(-69px, -150px) scale(0.78); }
-    .flipBtn:active { transform: translate(-69px, -150px) scale(0.78) scale(0.9); }
+    /* All three deck layers share ONE canvas->screen mapping (issue 1).
+       translate is applied in parent (unscaled) space; scale shrinks local
+       coordinates, so with a layout box at (bx,by) the screen origin is
+       (bx+19, by-95) and a local point maps (19+0.75*lx, -95+0.75*ly).
+       .arc/.flipWrap keep canvas box (-19,202 442x50) -> screen (0,107);
+       .stream keeps (0,202 402x335) -> screen (19,107). In landscape the JS
+       writes ARC-LOCAL handle coords (see applyPos); the handle window is
+       t=0.10..0.90, giving screen x 23..295, fully inside at both ends. */
+    .arc {
+      left: -19px; top: 202px; width: 442px; height: 50px;
+      transform: translate(19px, -95px) scale(0.75);
+      transform-origin: top left;
+    }
+    .stream {
+      left: 0; top: 202px; height: 335px;
+      transform: translate(19px, -95px) scale(0.75);
+      transform-origin: top left;
+    }
+    .flipWrap {
+      inset: auto; left: -19px; top: 202px;
+      width: 442px; height: 50px;
+      transform: translate(19px, -95px) scale(0.75);
+      transform-origin: top left;
+      z-index: 15;
+    }
+    .flipBtn { transform: none; }
+    .flipBtn:active { transform: scale(0.9); }
 
     /* --- right column: chips / info / dots / input ------------------------ */
     .chip { top: 52px; height: 32px; border-radius: 16px; }
@@ -651,10 +692,11 @@
     .signal { top: 8px; }
     .more { top: 11px; }
 
-    .stream { top: 44px; }
-    .arc { top: 44px; }
-    .flipBtn { transform: translate(-69px, -162px) scale(0.78); }
-    .flipBtn:active { transform: translate(-69px, -162px) scale(0.78) scale(0.9); }
+    /* Shift the shared deck mapping up 8px (Y: -95 -> -103); deck bottom
+       becomes 299.75 in a 360px-tall viewport. */
+    .arc { transform: translate(19px, -103px) scale(0.75); }
+    .stream { transform: translate(19px, -103px) scale(0.75); }
+    .flipWrap { transform: translate(19px, -103px) scale(0.75); }
 
     .chip { top: 44px; }
     .info { top: 86px; height: 142px; }

@@ -1,3 +1,4 @@
+import { useI18n } from '../lib/i18n'
 import styles from './CloseButton.module.css'
 
 interface CloseButtonProps {
@@ -5,6 +6,7 @@ interface CloseButtonProps {
   label?: string
 }
 
-export function CloseButton({ onClose, label = 'Close' }: CloseButtonProps) {
-  return <button className={styles.close} type="button" onClick={onClose} aria-label={label}>×</button>
+export function CloseButton({ onClose, label }: CloseButtonProps) {
+  const { t } = useI18n()
+  return <button className={styles.close} type="button" onClick={onClose} aria-label={label ?? t('close')}>×</button>
 }

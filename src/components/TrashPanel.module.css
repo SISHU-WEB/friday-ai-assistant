@@ -55,7 +55,7 @@
   align-items: center;
   gap: 12px;
   margin-top: 80px;
-  color: #4a6055;
+  color: #7e9388; /* P3-2: was #4a6055 (2.8:1); #7e9388 ≈ 5.1:1 on dark surfaces */
 }
 
 .empty p {
