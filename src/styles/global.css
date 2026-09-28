@@ -15,14 +15,13 @@ html {
   text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
-  height: 100%;
+  min-height: 100dvh;
 }
 
 body {
   width: 100%;
   min-width: 320px;
   min-height: 100dvh;
-  height: 100%;
   margin: 0;
   overflow-x: clip;
   overscroll-behavior: none;

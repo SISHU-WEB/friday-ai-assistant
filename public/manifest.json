@@ -4,8 +4,8 @@
   "description": "Focus-based task management",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#080d0a",
-  "theme_color": "#080d0a",
+  "background_color": "#030504",
+  "theme_color": "#030504",
   "icons": [
     {
       "src": "/icon-192.png",
