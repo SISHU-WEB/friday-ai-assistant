@@ -7,6 +7,45 @@ import type { SubscriptionStatus } from './stripe'
 
 type SyncStatus = 'idle' | 'syncing' | 'error'
 
+// ──────────────────────────────────────────────────────────────
+//  Known-remote-ID tracking (remote → local deletion propagation)
+// ──────────────────────────────────────────────────────────────
+//
+// After every successful sync we persist the set of IDs that exist in the
+// cloud. On the next sync, an ID that WAS known-remote but is now missing
+// means another device deleted it while we were offline — so we delete the
+// local copy instead of re-uploading it ("resurrection" bug).
+
+const KNOWN_REMOTE_KEY = 'friday.knownRemoteIds.v1'
+
+type KnownRemoteKind = 'tasks' | 'archiveFolders' | 'archiveItems'
+type KnownRemoteState = Record<KnownRemoteKind, string[]>
+
+function loadKnownRemote(): KnownRemoteState {
+  try {
+    const raw = localStorage.getItem(KNOWN_REMOTE_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<KnownRemoteState>
+      return {
+        tasks: Array.isArray(parsed.tasks) ? parsed.tasks : [],
+        archiveFolders: Array.isArray(parsed.archiveFolders) ? parsed.archiveFolders : [],
+        archiveItems: Array.isArray(parsed.archiveItems) ? parsed.archiveItems : [],
+      }
+    }
+  } catch {
+    // ignore corrupted payload, start fresh
+  }
+  return { tasks: [], archiveFolders: [], archiveItems: [] }
+}
+
+function saveKnownRemote(state: KnownRemoteState): void {
+  try {
+    localStorage.setItem(KNOWN_REMOTE_KEY, JSON.stringify(state))
+  } catch {
+    // storage full / unavailable — next sync just falls back to empty known set
+  }
+}
+
 export interface TaskRow {
   id: string
   user_id: string
@@ -239,13 +278,24 @@ class SyncManager {
       if (fetchError && !isSoftError(fetchError)) throw fetchError
 
       const remoteTasks = ((remote ?? []) as TaskRow[]).map((r) => this.mapRemoteTask(r))
-      const merged = this.mergeCollections(localTasks, remoteTasks)
+
+      // Remote-side deletion propagation: an ID that was known to exist in the
+      // cloud but is now missing was deleted on another device while we were
+      // offline. Drop the local copy instead of re-uploading it.
+      const known = loadKnownRemote()
+      const remoteIds = new Set(remoteTasks.map((t) => t.id))
+      const remoteDeleted = new Set(known.tasks.filter((id) => !remoteIds.has(id)))
+      const survivingLocal = remoteDeleted.size > 0
+        ? localTasks.filter((t) => !remoteDeleted.has(t.id))
+        : localTasks
+
+      const merged = this.mergeCollections(survivingLocal, remoteTasks)
 
       // Push only rows that are genuinely newer locally (or missing remotely).
       // Re-upserting unchanged rows would fire the updated_at trigger and
       // broadcast Realtime UPDATE echoes back to every client (sync storm).
       const remoteById = new Map(remoteTasks.map((t) => [t.id, t]))
-      const dirty = localTasks.filter((task) => {
+      const dirty = survivingLocal.filter((task) => {
         const remoteTask = remoteById.get(task.id)
         if (!remoteTask) return true
         const localTime = new Date(task.updatedAt || task.createdAt || 0).getTime()
@@ -260,6 +310,11 @@ class SyncManager {
           .upsert(rows, { onConflict: 'id' })
         if (upsertError && !isSoftError(upsertError)) throw upsertError
       }
+
+      // Persist the new known-remote set: everything in the cloud now, plus
+      // everything we just uploaded.
+      known.tasks = [...new Set([...remoteIds, ...dirty.map((t) => t.id)])]
+      saveKnownRemote(known)
 
       this.finish()
       return merged
@@ -311,7 +366,27 @@ class SyncManager {
       const remoteFolderList = ((foldersRes.data ?? []) as FolderRow[]).map((rf) =>
         this.mapRemoteFolder(rf, (itemsRes.data ?? []) as ItemRow[]),
       )
-      const merged = this.mergeCollections(localFolders, remoteFolderList)
+
+      // Remote-side deletion propagation (same mechanism as syncTasks):
+      // folders/items that were known-remote but are now gone were deleted on
+      // another device — drop the local copies instead of re-uploading them.
+      const known = loadKnownRemote()
+      const remoteItemIds = new Set(((itemsRes.data ?? []) as ItemRow[]).map((r) => r.id))
+      const remoteFolderIds = new Set(remoteFolderList.map((f) => f.id))
+      const remoteDeletedFolders = new Set(known.archiveFolders.filter((id) => !remoteFolderIds.has(id)))
+      const remoteDeletedItems = new Set(known.archiveItems.filter((id) => !remoteItemIds.has(id)))
+      const survivingLocal =
+        remoteDeletedFolders.size === 0 && remoteDeletedItems.size === 0
+          ? localFolders
+          : localFolders
+              .filter((f) => !remoteDeletedFolders.has(f.id))
+              .map((f) =>
+                remoteDeletedItems.size === 0
+                  ? f
+                  : { ...f, items: f.items.filter((i) => !remoteDeletedItems.has(i.id)) },
+              )
+
+      const merged = this.mergeCollections(survivingLocal, remoteFolderList)
 
       const now = new Date().toISOString()
       // Diff-based pushes: unchanged rows are skipped so the updated_at trigger
@@ -320,7 +395,7 @@ class SyncManager {
       const remoteItemMap = new Map<string, ItemRow>()
       for (const ri of (itemsRes.data ?? []) as ItemRow[]) remoteItemMap.set(ri.id, ri)
 
-      const folderRows = localFolders
+      const folderRows = survivingLocal
         .filter((folder) => {
           const remoteFolder = remoteFolderMap.get(folder.id)
           if (!remoteFolder) return true
@@ -344,7 +419,7 @@ class SyncManager {
         if (upsertError && !isSoftError(upsertError)) throw upsertError
       }
 
-      const itemRows = localFolders.flatMap((folder) =>
+      const itemRows = survivingLocal.flatMap((folder) =>
         folder.items
           .filter((item) => {
             const remoteItem = remoteItemMap.get(item.id)
@@ -370,6 +445,11 @@ class SyncManager {
           .upsert(itemRows, { onConflict: 'id' })
         if (upsertError && !isSoftError(upsertError)) throw upsertError
       }
+
+      // Persist the new known-remote set.
+      known.archiveFolders = [...new Set([...remoteFolderIds, ...folderRows.map((f) => f.id)])]
+      known.archiveItems = [...new Set([...remoteItemIds, ...itemRows.map((i) => i.id)])]
+      saveKnownRemote(known)
 
       this.finish()
       return merged
