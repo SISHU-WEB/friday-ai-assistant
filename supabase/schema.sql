@@ -94,12 +94,17 @@ begin
 end $$;
 
 -- ---------- Realtime publication ----------
--- Enable real-time push for cross-window/cross-device sync
+-- Enable real-time push for cross-window/cross-device sync.
+-- Idempotent: ignores "already member of publication" errors.
 do $$
 declare t text;
 begin
   for t in select unnest(array['tasks','archive_folders','archive_items','user_subscriptions'])
   loop
-    execute format('alter publication supabase_realtime add table public.%I;', t);
+    begin
+      execute format('alter publication supabase_realtime add table public.%I;', t);
+    exception when duplicate_object then
+      null;
+    end;
   end loop;
 end $$;
