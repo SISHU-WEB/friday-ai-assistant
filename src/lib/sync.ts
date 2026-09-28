@@ -7,7 +7,7 @@ import type { SubscriptionStatus } from './stripe'
 
 type SyncStatus = 'idle' | 'syncing' | 'error'
 
-interface TaskRow {
+export interface TaskRow {
   id: string
   user_id: string
   title: string
@@ -30,7 +30,7 @@ interface TaskRow {
   original_end_time: string | null
 }
 
-interface FolderRow {
+export interface FolderRow {
   id: string
   user_id: string
   name: string
@@ -41,7 +41,7 @@ interface FolderRow {
   icon: string | null
 }
 
-interface ItemRow {
+export interface ItemRow {
   id: string
   user_id: string
   folder_id: string | null
@@ -468,3 +468,59 @@ class SyncManager {
 }
 
 export const syncManager = new SyncManager()
+
+// ── Standalone mapping functions (used by Realtime subscriptions) ──
+
+export function mapRemoteTaskRow(r: TaskRow): Task {
+  return {
+    id: r.id,
+    title: r.title,
+    date: r.task_date,
+    startTime: r.start_time,
+    endTime: r.end_time,
+    status: r.status as Task['status'],
+    type: r.task_type as Task['type'],
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+    description: r.description || '',
+    category: r.category || 'Other',
+    priority: (r.priority as Task['priority']) ?? undefined,
+    tags: r.tags ?? undefined,
+    isFlexible: r.is_flexible ?? undefined,
+    userId: r.user_id,
+    interruptionReason: r.interruption_reason ?? undefined,
+    interruptedAt: r.interrupted_at ?? undefined,
+    estimatedReturnMinutes: r.estimated_return_minutes ?? undefined,
+    originalStartTime: r.original_start_time ?? undefined,
+    originalEndTime: r.original_end_time ?? undefined,
+  }
+}
+
+export function mapRemoteFolderRow(rf: FolderRow, currentFolders: ArchiveFolder[]): ArchiveFolder {
+  const existingItems = currentFolders.find((f) => f.id === rf.id)?.items ?? []
+  return {
+    id: rf.id,
+    name: rf.name,
+    category: rf.category ?? 'Other',
+    createdAt: rf.created_at,
+    updatedAt: rf.updated_at,
+    userId: rf.user_id,
+    color: rf.color ?? undefined,
+    icon: rf.icon ?? undefined,
+    items: existingItems,
+  }
+}
+
+export function mapRemoteItemRow(ri: ItemRow): ArchiveItem {
+  return {
+    id: ri.id,
+    title: ri.title,
+    note: ri.note || '',
+    createdAt: ri.created_at,
+    updatedAt: ri.updated_at,
+    userId: ri.user_id,
+    isLongTerm: ri.is_long_term ?? undefined,
+    tags: ri.tags ?? undefined,
+    folderId: ri.folder_id ?? undefined,
+  }
+}

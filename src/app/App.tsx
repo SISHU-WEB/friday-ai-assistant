@@ -6,7 +6,8 @@ import { Auth } from '../components/Auth'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { supabase } from '../lib/supabase'
 import { aiReplanInterruption, type ScheduledTask } from '../lib/ai'
-import { syncManager } from '../lib/sync'
+import { syncManager, mapRemoteTaskRow, mapRemoteFolderRow, mapRemoteItemRow } from '../lib/sync'
+import type { TaskRow, FolderRow, ItemRow } from '../lib/sync'
 import { enqueue, flushOutbox } from '../lib/outbox'
 import { subscriptionManager } from '../lib/stripe'
 import type { InterruptionResult } from '../features/home/InterruptionPanel'
@@ -218,6 +219,109 @@ export function App() {
       cancelled = true
     }
   }, [session])
+
+  // ── Supabase Realtime: push remote changes to local state in real-time ──
+  // Without this, two browser windows on the same account won't see each
+  // other's changes until the 30s polling timer fires.
+  useEffect(() => {
+    const userId = session?.user?.id
+    if (!userId || !syncReady) return
+
+    const channel = supabase
+      .channel(`realtime-${userId}`)
+      // ── tasks ──
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'tasks', filter: `user_id=eq.${userId}` },
+        (payload) => {
+          const row = payload.new as TaskRow | null
+          if (payload.eventType === 'DELETE' || !row) {
+            const oldId = (payload.old as { id?: string })?.id
+            if (oldId) dispatch({ type: 'DELETE_TASK', id: oldId })
+            return
+          }
+          const task: Task = mapRemoteTaskRow(row)
+          const exists = tasksRef.current.some((t) => t.id === task.id)
+          dispatch({ type: exists ? 'UPDATE_TASK' : 'ADD_TASK', task })
+        },
+      )
+      // ── archive_folders ──
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'archive_folders', filter: `user_id=eq.${userId}` },
+        (payload) => {
+          const row = payload.new as FolderRow | null
+          if (payload.eventType === 'DELETE' || !row) {
+            const oldId = (payload.old as { id?: string })?.id
+            if (oldId) {
+              const next = foldersRef.current.filter((f) => f.id !== oldId)
+              dispatch({ type: 'SET_ARCHIVE_FOLDERS', folders: next })
+            }
+            return
+          }
+          const folder = mapRemoteFolderRow(row, foldersRef.current)
+          const exists = foldersRef.current.some((f) => f.id === folder.id)
+          if (exists) {
+            dispatch({
+              type: 'SET_ARCHIVE_FOLDERS',
+              folders: foldersRef.current.map((f) => (f.id === folder.id ? { ...folder, items: f.items } : f)),
+            })
+          } else {
+            dispatch({ type: 'SET_ARCHIVE_FOLDERS', folders: [...foldersRef.current, folder] })
+          }
+        },
+      )
+      // ── archive_items ──
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'archive_items', filter: `user_id=eq.${userId}` },
+        (payload) => {
+          const row = payload.new as ItemRow | null
+          if (payload.eventType === 'DELETE' || !row) {
+            const oldId = (payload.old as { id?: string })?.id
+            if (oldId) {
+              const next = foldersRef.current.map((f) => ({
+                ...f,
+                items: f.items.filter((i) => i.id !== oldId),
+              }))
+              dispatch({ type: 'SET_ARCHIVE_FOLDERS', folders: next })
+            }
+            return
+          }
+          const item = mapRemoteItemRow(row)
+          const folders = foldersRef.current
+          let found = false
+          const next = folders.map((f) => {
+            const hasItem = f.items.some((i) => i.id === item.id)
+            if (!hasItem && f.id !== item.folderId) return f
+            found = true
+            if (f.id !== item.folderId) {
+              // item moved to a different folder
+              return { ...f, items: f.items.filter((i) => i.id !== item.id) }
+            }
+            if (hasItem) {
+              return { ...f, items: f.items.map((i) => (i.id === item.id ? item : i)) }
+            }
+            return { ...f, items: [item, ...f.items] }
+          })
+          if (!found && item.folderId) {
+            next.push({
+              id: item.folderId,
+              name: '',
+              category: 'Other',
+              createdAt: new Date().toISOString(),
+              items: [item],
+            } as ArchiveFolder)
+          }
+          dispatch({ type: 'SET_ARCHIVE_FOLDERS', folders: next })
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [session, syncReady])
 
   useEffect(() => {
     taskRepository.save(state.tasks)

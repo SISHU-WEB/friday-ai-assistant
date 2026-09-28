@@ -92,3 +92,14 @@ begin
     );
   end loop;
 end $$;
+
+-- ---------- Realtime publication ----------
+-- Enable real-time push for cross-window/cross-device sync
+do $$
+declare t text;
+begin
+  for t in select unnest(array['tasks','archive_folders','archive_items','user_subscriptions'])
+  loop
+    execute format('alter publication supabase_realtime add table public.%I;', t);
+  end loop;
+end $$;
