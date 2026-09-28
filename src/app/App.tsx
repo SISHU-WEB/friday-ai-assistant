@@ -152,20 +152,16 @@ export function App() {
   subStatusRef.current = subStatus
   useEffect(() => {
     const applyRemote = (changes: Array<{ entity: string; entityId: string; op: string; payload: unknown; changedAt: string }>) => {
-      const current = tasksRef.current
       for (const c of changes) {
         if (c.entity !== 'task') continue
         const task = c.payload as Task | undefined
         if (c.op === 'delete') {
-          dispatch({ type: 'DELETE_TASK', id: c.entityId })
+          dispatch({ type: 'REMOTE_DELETE_TASK', id: c.entityId })
         } else if (c.op === 'create' || c.op === 'update') {
           if (task) {
-            const exists = current.some((t) => t.id === c.entityId)
-            if (exists) {
-              dispatch({ type: 'UPDATE_TASK', task })
-            } else {
-              dispatch({ type: 'ADD_TASK', task })
-            }
+            // Silent merge: no view jumps, no carousel reset (same path as
+            // Supabase Realtime).
+            dispatch({ type: 'REMOTE_UPSERT_TASK', task })
           }
         }
       }
@@ -237,12 +233,12 @@ export function App() {
           const row = payload.new as TaskRow | null
           if (payload.eventType === 'DELETE' || !row) {
             const oldId = (payload.old as { id?: string })?.id
-            if (oldId) dispatch({ type: 'DELETE_TASK', id: oldId })
+            if (oldId) dispatch({ type: 'REMOTE_DELETE_TASK', id: oldId })
             return
           }
-          const task: Task = mapRemoteTaskRow(row)
-          const exists = tasksRef.current.some((t) => t.id === task.id)
-          dispatch({ type: exists ? 'UPDATE_TASK' : 'ADD_TASK', task })
+          // Silent upsert: the reducer ignores echoes of our own writes and
+          // never changes the carousel position or home mode.
+          dispatch({ type: 'REMOTE_UPSERT_TASK', task: mapRemoteTaskRow(row) })
         },
       )
       // ── archive_folders ──
@@ -259,9 +255,15 @@ export function App() {
             }
             return
           }
+          const existing = foldersRef.current.find((f) => f.id === row.id)
+          if (existing) {
+            // Ignore echoes / stale updates to avoid a dispatch → sync → echo loop
+            const remoteTime = new Date(row.updated_at || row.created_at || 0).getTime()
+            const localTime = new Date(existing.updatedAt || existing.createdAt || 0).getTime()
+            if (remoteTime <= localTime) return
+          }
           const folder = mapRemoteFolderRow(row, foldersRef.current)
-          const exists = foldersRef.current.some((f) => f.id === folder.id)
-          if (exists) {
+          if (existing) {
             dispatch({
               type: 'SET_ARCHIVE_FOLDERS',
               folders: foldersRef.current.map((f) => (f.id === folder.id ? { ...folder, items: f.items } : f)),
@@ -290,6 +292,16 @@ export function App() {
           }
           const item = mapRemoteItemRow(row)
           const folders = foldersRef.current
+          // Echo / stale guard for items already present locally
+          for (const f of folders) {
+            const localItem = f.items.find((i) => i.id === item.id)
+            if (localItem) {
+              const remoteTime = new Date(item.updatedAt || item.createdAt || 0).getTime()
+              const localTime = new Date(localItem.updatedAt || localItem.createdAt || 0).getTime()
+              if (remoteTime <= localTime) return
+              break
+            }
+          }
           let found = false
           const next = folders.map((f) => {
             const hasItem = f.items.some((i) => i.id === item.id)

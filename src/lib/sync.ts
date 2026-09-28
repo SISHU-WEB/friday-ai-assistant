@@ -241,9 +241,20 @@ class SyncManager {
       const remoteTasks = ((remote ?? []) as TaskRow[]).map((r) => this.mapRemoteTask(r))
       const merged = this.mergeCollections(localTasks, remoteTasks)
 
-      if (localTasks.length > 0) {
+      // Push only rows that are genuinely newer locally (or missing remotely).
+      // Re-upserting unchanged rows would fire the updated_at trigger and
+      // broadcast Realtime UPDATE echoes back to every client (sync storm).
+      const remoteById = new Map(remoteTasks.map((t) => [t.id, t]))
+      const dirty = localTasks.filter((task) => {
+        const remoteTask = remoteById.get(task.id)
+        if (!remoteTask) return true
+        const localTime = new Date(task.updatedAt || task.createdAt || 0).getTime()
+        const rTime = new Date(remoteTask.updatedAt || remoteTask.createdAt || 0).getTime()
+        return localTime > rTime
+      })
+      if (dirty.length > 0) {
         const now = new Date().toISOString()
-        const rows = localTasks.map((task) => this.toTaskRow(task, userId, now))
+        const rows = dirty.map((task) => this.toTaskRow(task, userId, now))
         const { error: upsertError } = await supabase
           .from('tasks')
           .upsert(rows, { onConflict: 'id' })
@@ -303,16 +314,29 @@ class SyncManager {
       const merged = this.mergeCollections(localFolders, remoteFolderList)
 
       const now = new Date().toISOString()
-      const folderRows = localFolders.map((folder) => ({
-        id: folder.id,
-        user_id: userId,
-        name: folder.name,
-        category: folder.category,
-        color: folder.color ?? null,
-        icon: folder.icon ?? null,
-        created_at: folder.createdAt ?? now,
-        updated_at: folder.updatedAt ?? now,
-      }))
+      // Diff-based pushes: unchanged rows are skipped so the updated_at trigger
+      // does not fire and no Realtime UPDATE echoes are generated.
+      const remoteFolderMap = new Map(remoteFolderList.map((f) => [f.id, f]))
+      const remoteItemMap = new Map<string, ItemRow>()
+      for (const ri of (itemsRes.data ?? []) as ItemRow[]) remoteItemMap.set(ri.id, ri)
+
+      const folderRows = localFolders
+        .filter((folder) => {
+          const remoteFolder = remoteFolderMap.get(folder.id)
+          if (!remoteFolder) return true
+          return new Date(folder.updatedAt || folder.createdAt || 0).getTime() >
+            new Date(remoteFolder.updatedAt || remoteFolder.createdAt || 0).getTime()
+        })
+        .map((folder) => ({
+          id: folder.id,
+          user_id: userId,
+          name: folder.name,
+          category: folder.category,
+          color: folder.color ?? null,
+          icon: folder.icon ?? null,
+          created_at: folder.createdAt ?? now,
+          updated_at: folder.updatedAt ?? now,
+        }))
       if (folderRows.length > 0) {
         const { error: upsertError } = await supabase
           .from('archive_folders')
@@ -321,17 +345,24 @@ class SyncManager {
       }
 
       const itemRows = localFolders.flatMap((folder) =>
-        folder.items.map((item) => ({
-          id: item.id,
-          user_id: userId,
-          folder_id: folder.id,
-          title: item.title,
-          note: item.note ?? '',
-          is_long_term: item.isLongTerm ?? null,
-          tags: item.tags ?? null,
-          created_at: item.createdAt ?? now,
-          updated_at: item.updatedAt ?? now,
-        })),
+        folder.items
+          .filter((item) => {
+            const remoteItem = remoteItemMap.get(item.id)
+            if (!remoteItem) return true
+            return new Date(item.updatedAt || item.createdAt || 0).getTime() >
+              new Date(remoteItem.updated_at || remoteItem.created_at || 0).getTime()
+          })
+          .map((item) => ({
+            id: item.id,
+            user_id: userId,
+            folder_id: folder.id,
+            title: item.title,
+            note: item.note ?? '',
+            is_long_term: item.isLongTerm ?? null,
+            tags: item.tags ?? null,
+            created_at: item.createdAt ?? now,
+            updated_at: item.updatedAt ?? now,
+          })),
       )
       if (itemRows.length > 0) {
         const { error: upsertError } = await supabase

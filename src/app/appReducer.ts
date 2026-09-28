@@ -45,6 +45,8 @@ export type AppAction =
   | { type: 'OPEN_TASK'; id: string; returnMode?: 'running' | 'dailySchedule' }
   | { type: 'CLOSE_TASK' }
   | { type: 'UPDATE_TASK'; task: Task }
+  | { type: 'REMOTE_UPSERT_TASK'; task: Task }
+  | { type: 'REMOTE_DELETE_TASK'; id: string }
   | { type: 'DELETE_TASK'; id: string }
   | { type: 'COMPLETE_TASK'; id: string }
   | { type: 'UNDO_DELETE_TASK'; id?: string }
@@ -126,6 +128,49 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         selectedDate: action.task.date,
         homeMode: 'taskDetail',
       }
+    case 'REMOTE_UPSERT_TASK': {
+      // Silent merge of a remote (Realtime) task. Never changes view mode,
+      // selected date, or the carousel position the user is looking at.
+      const incoming = action.task
+      const idx = state.tasks.findIndex((task) => task.id === incoming.id)
+      if (idx === -1) {
+        // New remote task. Prepend (same order as local ADD) but shift the
+        // active index by one ONLY when it belongs to the visible day, so the
+        // card the user is viewing stays in place.
+        const affectsVisibleDay = incoming.date === state.selectedDate
+        return {
+          ...state,
+          tasks: [incoming, ...state.tasks],
+          activeTaskIndex: affectsVisibleDay ? state.activeTaskIndex + 1 : state.activeTaskIndex,
+        }
+      }
+      const existing = state.tasks[idx]
+      const remoteTime = new Date(incoming.updatedAt || incoming.createdAt || 0).getTime()
+      const localTime = new Date(existing.updatedAt || existing.createdAt || 0).getTime()
+      if (remoteTime <= localTime) return state // echo of our own write or stale
+      const tasks = state.tasks.slice()
+      tasks[idx] = incoming
+      return { ...state, tasks }
+    }
+    case 'REMOTE_DELETE_TASK': {
+      const target = state.tasks.find((task) => task.id === action.id)
+      if (!target) return state
+      const visibleDayTasks = state.tasks.filter((t) => t.date === state.selectedDate)
+      const removedVisibleIdx = visibleDayTasks.findIndex((t) => t.id === action.id)
+      let activeTaskIndex = state.activeTaskIndex
+      if (removedVisibleIdx !== -1 && removedVisibleIdx < state.activeTaskIndex) {
+        activeTaskIndex = Math.max(0, state.activeTaskIndex - 1)
+      }
+      const remainingVisible = visibleDayTasks.length - (removedVisibleIdx !== -1 ? 1 : 0)
+      activeTaskIndex = Math.min(activeTaskIndex, Math.max(0, remainingVisible - 1))
+      return {
+        ...state,
+        tasks: state.tasks.filter((task) => task.id !== action.id),
+        activeTaskIndex,
+        selectedTaskId: state.selectedTaskId === action.id ? null : state.selectedTaskId,
+        homeMode: state.selectedTaskId === action.id ? 'running' : state.homeMode,
+      }
+    }
     case 'UNDO_DELETE_TASK': {
       // Undo targets a specific task so consecutive deletes do not collide (U-6).
       const id = action.id ?? state.lastDeletedTask?.id
