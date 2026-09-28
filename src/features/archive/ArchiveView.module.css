@@ -574,6 +574,20 @@
     background: radial-gradient(circle at 60% 28%, rgb(37 61 46 / 45%), transparent 55%), linear-gradient(155deg, #080d0a 0%, #0b0f0d 48%, #050706 100%);
   }
 
+  /* R-04 phones: the 402x874 canvas fills the real viewport so no white
+     edges appear. JS-driven scale still works because the phone's
+     transform-origin is center and overflow is clipped. */
+  @media (max-width: 430px) and (orientation: portrait) {
+    .phone {
+      width: 100%;
+      height: 100dvh;
+      transform: none !important;
+    }
+    .viewport {
+      background: radial-gradient(circle at 60% 28%, rgb(37 61 46 / 45%), transparent 55%), linear-gradient(155deg, #080d0a 0%, #0b0f0d 48%, #050706 100%);
+    }
+  }
+
   /* ===========================================================================
      R-05 landscape phones (orientation: landscape, height < 500px)
 

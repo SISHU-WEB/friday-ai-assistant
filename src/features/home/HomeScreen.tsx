@@ -180,7 +180,14 @@ export function HomeScreen({ tasks, mode, selectedDate, activeTaskIndex, onActiv
         )}
       </div>
       {mode === 'addTaskVoice' ? (
-        <VoiceInput selectedDate={selectedDate} onSubmit={onTaskSubmit} onCancel={onCancelAddTask} />
+        <VoiceInput
+          selectedDate={selectedDate}
+          tasks={tasks}
+          onSubmit={onTaskSubmit}
+          onUpdateTask={onUpdateTask}
+          onDeleteTask={onDeleteTask}
+          onCancel={onCancelAddTask}
+        />
       ) : null}
       {mode === 'pauseVoiceInput' ? (
         <InterruptionPanel

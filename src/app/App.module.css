@@ -56,6 +56,7 @@
   .appShell {
     place-items: start center;
     padding-block: 0;
+    padding: 0;
     background: #030504;
   }
 

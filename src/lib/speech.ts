@@ -52,41 +52,74 @@ function createWebEngine(): SpeechEngine | null {
   if (!Ctor) return null
 
   let recognition: WebRecognitionInstance | null = null
+  let starting = false
 
   return {
     supported: true,
     start(lang, handlers) {
-      this.abort()
-      const rec = new Ctor()
-      rec.continuous = true
-      rec.interimResults = true
-      rec.lang = lang
-      rec.onresult = (event) => {
-        let text = ''
-        for (let index = 0; index < event.results.length; index += 1) {
-          text += event.results[index][0].transcript
-        }
-        handlers.onResult(text)
-      }
-      rec.onend = () => handlers.onEnd()
-      rec.onerror = (event) => {
-        const raw = event.error as SpeechError
-        handlers.onError(WEB_KNOWN_ERRORS.includes(raw) ? raw : 'unknown')
-      }
-      recognition = rec
-      try {
-        rec.start()
-      } catch {
+      // Abort any previous instance first. Safari requires the old
+      // instance to be fully stopped before a new one can start.
+      if (recognition) {
+        // Remove ALL event handlers before aborting so the old onend
+        // doesn't fire and set listening=false on the new session.
+        recognition.onresult = null
+        recognition.onend = null
+        recognition.onerror = null
+        try { recognition.abort() } catch { /* noop */ }
         recognition = null
-        handlers.onError('unknown')
-        handlers.onEnd()
       }
+      // Always reset the starting flag — even if a previous onend hasn't
+      // fired yet, the user explicitly wants to start a new session.
+      starting = false
+
+      // Use setTimeout(0) to yield to the browser so Safari can clean up
+      // the previous SpeechRecognition before we create a new one.
+      setTimeout(() => {
+        const rec = new Ctor()
+        rec.continuous = true
+        rec.interimResults = true
+        rec.lang = lang
+        rec.onresult = (event) => {
+          let text = ''
+          for (let index = 0; index < event.results.length; index += 1) {
+            text += event.results[index][0].transcript
+          }
+          handlers.onResult(text)
+        }
+        rec.onend = () => {
+          starting = false
+          handlers.onEnd()
+        }
+        rec.onerror = (event) => {
+          starting = false
+          const raw = event.error as SpeechError
+          handlers.onError(WEB_KNOWN_ERRORS.includes(raw) ? raw : 'unknown')
+        }
+        recognition = rec
+        try {
+          rec.start()
+        } catch {
+          // Safari throws "recognition has already started" if the previous
+          // instance is not fully released. Retry once after a longer delay.
+          setTimeout(() => {
+            try { rec.start() } catch {
+              starting = false
+              recognition = null
+              handlers.onError('unknown')
+              handlers.onEnd()
+            }
+          }, 200)
+          return
+        }
+      }, 0)
     },
     stop() {
-      recognition?.stop()
+      starting = false
+      try { recognition?.stop() } catch { /* noop */ }
     },
     abort() {
-      recognition?.abort()
+      starting = false
+      try { recognition?.abort() } catch { /* noop */ }
       recognition = null
     },
   }

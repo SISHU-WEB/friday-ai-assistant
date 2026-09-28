@@ -21,7 +21,7 @@
 
 .primary { z-index: 4; display: flex; flex-direction: column; justify-content: space-between; padding: 49px 24px 30px; }
 .primary h2 { margin: 0; font-size: 26px; font-weight: 700; line-height: 1.12; letter-spacing: -0.6px; }
-.time { margin: 16px 0 0; color: var(--color-text-secondary); font-size: 16px; font-weight: 500; line-height: 1.3; }
+.time { margin: 16px 0 0; color: #ffffff; font-size: 16px; font-weight: 500; line-height: 1.3; }
 .divider { width: 100%; height: 1px; margin: 22px 0 18px; background: rgb(225 240 230 / 12%); }
 .description { margin: 0; color: #b7c1bb; font-size: 16px; font-weight: 450; line-height: 1.45; }
 .focusRow { display: flex; align-items: center; gap: 10px; color: #b9c4be; font-size: 14px; font-weight: 500; }

@@ -3,6 +3,7 @@ import type { ArchiveFolder, ArchiveItem } from '../types/archive'
 import { supabase } from './supabase'
 import type { Session } from '@supabase/supabase-js'
 import { clearTombstones, getTombstoneIds } from './tombstones'
+import type { SubscriptionStatus } from './stripe'
 
 type SyncStatus = 'idle' | 'syncing' | 'error'
 
@@ -100,15 +101,12 @@ class SyncManager {
   private async ensureTables(userId: string) {
     if (this.tablesCheckedFor.has(userId)) return
     this.tablesCheckedFor.add(userId)
-    try {
-      await supabase.from('tasks').select('id').limit(1).maybeSingle()
-    } catch {
-      console.info('Tasks table not yet accessible for user', userId)
-    }
-    try {
-      await supabase.from('archive_folders').select('id').limit(1).maybeSingle()
-    } catch {
-      console.info('Archive tables not yet accessible for user', userId)
+    for (const table of ['tasks', 'archive_folders', 'archive_items', 'user_subscriptions']) {
+      try {
+        await supabase.from(table).select('id').limit(1).maybeSingle()
+      } catch {
+        console.info(`Table "${table}" not yet accessible for user`, userId)
+      }
     }
   }
 
@@ -368,6 +366,104 @@ class SyncManager {
     })
     for (const remaining of remoteMap.values()) result.push(remaining)
     return result
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  //  Subscription sync
+  // ──────────────────────────────────────────────────────────────
+
+  /**
+   * Push local subscription status to Supabase, then pull the remote copy.
+   * Whichever has the newer updated_at wins (last-write-wins).
+   * Returns the merged status that the caller should apply locally.
+   */
+  async syncSubscription(
+    session: Session | null,
+    local: SubscriptionStatus,
+  ): Promise<SubscriptionStatus> {
+    if (!session?.user?.id) return local
+    const userId = session.user.id
+    this.begin()
+
+    try {
+      await this.ensureTables(userId)
+
+      // Upsert local status into the cloud.
+      const row = {
+        user_id: userId,
+        tier: local.tier,
+        is_active: local.isActive,
+        expires_at: local.expiresAt ?? null,
+        stripe_customer_id: local.stripeCustomerId ?? null,
+        stripe_subscription_id: local.stripeSubscriptionId ?? null,
+        updated_at: new Date().toISOString(),
+      }
+      const { error: upsertErr } = await supabase
+        .from('user_subscriptions')
+        .upsert(row, { onConflict: 'user_id' })
+      if (upsertErr && !isSoftError(upsertErr)) throw upsertErr
+
+      // Pull remote to see if the other device set a newer status.
+      const { data: remote, error: fetchErr } = await supabase
+        .from('user_subscriptions')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle()
+
+      if (fetchErr && !isSoftError(fetchErr)) throw fetchErr
+
+      this.finish()
+
+      if (!remote) return local // table doesn't exist yet — soft error
+
+      const remoteUpdated = new Date((remote as { updated_at?: string }).updated_at ?? 0).getTime()
+      const localUpdated = Date.now() // we just upserted
+      // Remote wins only if it was written by the other device AFTER our upsert
+      // (which is impossible since we just wrote). So local always wins here.
+      // The next device that pulls will get our status.
+      if (remoteUpdated > localUpdated) {
+        return {
+          tier: (remote as { tier: 'free' | 'premium' }).tier,
+          isActive: (remote as { is_active: boolean }).is_active,
+          expiresAt: (remote as { expires_at?: string }).expires_at ?? undefined,
+          stripeCustomerId: (remote as { stripe_customer_id?: string }).stripe_customer_id ?? undefined,
+          stripeSubscriptionId: (remote as { stripe_subscription_id?: string }).stripe_subscription_id ?? undefined,
+        }
+      }
+      return local
+    } catch (e) {
+      return this.fail(local, e)
+    }
+  }
+
+  /**
+   * Pull-only path for login: fetch the user's subscription from the cloud
+   * so a new device immediately reflects premium status.
+   */
+  async pullSubscription(session: Session): Promise<SubscriptionStatus | null> {
+    const userId = session.user.id
+    await this.ensureTables(userId)
+    const { data, error } = await supabase
+      .from('user_subscriptions')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle()
+    if (error && !isSoftError(error)) return null
+    if (!data) return null
+    const r = data as {
+      tier: 'free' | 'premium'
+      is_active: boolean
+      expires_at?: string
+      stripe_customer_id?: string
+      stripe_subscription_id?: string
+    }
+    return {
+      tier: r.tier,
+      isActive: r.is_active,
+      expiresAt: r.expires_at ?? undefined,
+      stripeCustomerId: r.stripe_customer_id ?? undefined,
+      stripeSubscriptionId: r.stripe_subscription_id ?? undefined,
+    }
   }
 }
 

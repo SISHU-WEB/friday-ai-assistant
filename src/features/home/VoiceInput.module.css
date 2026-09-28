@@ -150,3 +150,27 @@
 }
 .manualInput::placeholder { color: #6b7a70; }
 .manualInput:focus { border-color: rgba(66, 219, 122, 0.35); }
+
+.modeSwitch {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 14px;
+  background: rgb(255 255 255 / 5%);
+  border: 1px solid rgb(255 255 255 / 8%);
+}
+.modeBtn {
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 11px;
+  border: none;
+  background: transparent;
+  color: #8a968e;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.modeBtnActive {
+  background: rgb(66 219 122 / 18%);
+  color: #42db7a;
+}

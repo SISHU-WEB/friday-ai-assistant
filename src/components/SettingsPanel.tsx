@@ -4,6 +4,8 @@ import type { TranslationKey } from '../lib/i18n'
 import { subscriptionManager, type SubscriptionStatus } from '../lib/stripe'
 import { syncManager } from '../lib/sync'
 import { SubscriptionPanel } from './SubscriptionPanel'
+import { getServerUrl, setServerUrl, serverHealth, serverFetch, DEFAULT_SERVER_URL } from '../lib/serverApi'
+import { useServerAuth } from '../hooks/useServerAuth'
 import styles from './SettingsPanel.module.css'
 
 interface SettingsPanelProps {
@@ -76,6 +78,11 @@ export function SettingsPanel({ onClose, onExport, onImport, onClearData, taskCo
   const [subStatus, setSubStatus] = useState<SubscriptionStatus>(subscriptionManager.getStatus())
   const [showSub, setShowSub] = useState(false)
   const [syncState, setSyncState] = useState(syncManager.getStatus())
+  const server = useServerAuth()
+  const [serverUrlInput, setServerUrlInput] = useState(getServerUrl())
+  const [serverEmail, setServerEmail] = useState('')
+  const [serverPassword, setServerPassword] = useState('')
+  const [serverOnline, setServerOnline] = useState<boolean | null>(null)
 
   useEffect(() => {
     setApiKey(localStorage.getItem('friday-openai-key') || '')
@@ -91,6 +98,40 @@ export function SettingsPanel({ onClose, onExport, onImport, onClearData, taskCo
     const unsub = syncManager.subscribe(() => setSyncState(syncManager.getStatus()))
     return () => { unsub() }
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    serverHealth().then((ok) => { if (!cancelled) setServerOnline(ok) })
+    return () => { cancelled = true }
+  }, [serverUrlInput])
+
+  // GDPR: download a JSON export of everything the server holds for this user.
+  const exportServerData = async () => {
+    const res = await serverFetch('/v1/me/export')
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'friday-export.json'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  // GDPR right to erasure: password confirmation, then full server-side delete.
+  const deleteServerAccount = async () => {
+    const password = window.prompt(t('serverDeleteConfirm'))
+    if (!password) return
+    try {
+      await serverFetch('/v1/me', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      })
+      await server.logout()
+    } catch (e) {
+      window.alert((e as Error).message)
+    }
+  }
 
   const saveApiKey = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value
@@ -188,6 +229,92 @@ export function SettingsPanel({ onClose, onExport, onImport, onClearData, taskCo
             {t('signInSync')}
           </button>
         ) : null}
+      </div>
+
+      <div className={styles.section}>
+        <h3>{t('serverIntegration')}</h3>
+        <p className={styles.desc}>{t('voiceServerConnect')}</p>
+        <div className={styles.field}>
+          <label className={styles.fieldLabel}>{t('serverUrl')}</label>
+          <input
+            type="text"
+            className={styles.fieldInput}
+            placeholder={DEFAULT_SERVER_URL}
+            value={serverUrlInput}
+            onChange={(e) => {
+              setServerUrlInput(e.target.value)
+              setServerUrl(e.target.value)
+            }}
+          />
+        </div>
+        <div className={styles.syncRow}>
+          <span
+            className={`${styles.syncDot} ${serverOnline === null ? '' : serverOnline ? '' : styles.syncDotError}`}
+          />
+          <span className={styles.syncText}>
+            {t('serverHealth')}: {serverOnline === null ? '…' : serverOnline ? t('serverOnline') : t('serverOffline')}
+          </span>
+        </div>
+        {server.isSignedIn && server.session ? (
+          <>
+            <p className={styles.desc}>{t('serverSignedInAs', { email: server.session.user.email })}</p>
+            <div className={styles.actions}>
+              <button className={styles.secondaryBtn} onClick={() => void exportServerData()}>
+                {t('serverExportData')}
+              </button>
+              <button
+                className={styles.secondaryBtn + ' ' + styles.signOutBtn}
+                onClick={() => void server.logout()}
+              >
+                {t('serverSignOut')}
+              </button>
+              <button className={styles.dangerBtn} onClick={() => void deleteServerAccount()}>
+                {t('serverDeleteAccount')}
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className={styles.field}>
+              <label className={styles.fieldLabel}>{t('serverEmail')}</label>
+              <input
+                type="email"
+                className={styles.fieldInput}
+                placeholder="you@example.com"
+                value={serverEmail}
+                onChange={(e) => setServerEmail(e.target.value)}
+                autoComplete="email"
+              />
+            </div>
+            <div className={styles.field}>
+              <label className={styles.fieldLabel}>{t('serverPassword')}</label>
+              <input
+                type="password"
+                className={styles.fieldInput}
+                value={serverPassword}
+                onChange={(e) => setServerPassword(e.target.value)}
+                autoComplete="current-password"
+              />
+            </div>
+            {server.error ? <p className={styles.desc}>{server.error}</p> : null}
+            <div className={styles.actions}>
+              <button
+                className={styles.primaryBtn}
+                disabled={server.loading || !serverEmail || !serverPassword}
+                onClick={() => void server.login(serverEmail, serverPassword).catch(() => {})}
+              >
+                {t('serverSignIn')}
+              </button>
+              <button
+                className={styles.secondaryBtn}
+                disabled={server.loading || !serverEmail || !serverPassword}
+                onClick={() => void server.register(serverEmail, serverPassword).catch(() => {})}
+              >
+                {t('serverSignUp')}
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       <div className={styles.section}>

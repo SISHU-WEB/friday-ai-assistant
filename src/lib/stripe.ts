@@ -132,6 +132,22 @@ export class SubscriptionManager {
     this.emit()
     return this.isPremium()
   }
+
+  /**
+   * Called by the sync layer when a remote subscription status is pulled
+   * from another device. Does NOT trigger a cloud push (that would loop).
+   */
+  setStatusRemote(remote: SubscriptionStatus) {
+    const remoteTime = remote.expiresAt ? new Date(remote.expiresAt).getTime() : 0
+    const localTime = this.status.expiresAt ? new Date(this.status.expiresAt).getTime() : 0
+    // Take whichever is newer — if the other device upgraded, we want it;
+    // if the other device cancelled, we respect that too.
+    if (remoteTime >= localTime) {
+      this.status = { ...remote }
+      saveToStorage(this.status)
+      this.emit()
+    }
+  }
 }
 
 export const subscriptionManager = new SubscriptionManager()

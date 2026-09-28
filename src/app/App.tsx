@@ -7,6 +7,7 @@ import { ErrorBoundary } from '../components/ErrorBoundary'
 import { supabase } from '../lib/supabase'
 import { aiReplanInterruption, type ScheduledTask } from '../lib/ai'
 import { syncManager } from '../lib/sync'
+import { enqueue, flushOutbox } from '../lib/outbox'
 import { subscriptionManager } from '../lib/stripe'
 import type { InterruptionResult } from '../features/home/InterruptionPanel'
 import type { Task, TaskStatus } from '../types/task'
@@ -115,19 +116,68 @@ export function App() {
     syncScheduledRef.current = window.setTimeout(async () => {
       if (!session?.user?.id) return
       try {
-        const newTasks = await syncManager.syncTasks(session, state.tasks)
-        if (tasksSignature(newTasks) !== tasksSignature(state.tasks)) {
+        // Use ref values to avoid stale closures — the timeout fires
+        // long after the render that scheduled it.
+        const currentTasks = tasksRef.current
+        const currentFolders = foldersRef.current
+        const newTasks = await syncManager.syncTasks(session, currentTasks)
+        if (tasksSignature(newTasks) !== tasksSignature(currentTasks)) {
           dispatch({ type: 'REPLACE_ALL_TASKS', tasks: newTasks })
         }
-        const newFolders = await syncManager.syncArchive(session, state.archiveFolders)
-        if (foldersSignature(newFolders) !== foldersSignature(state.archiveFolders)) {
+        const newFolders = await syncManager.syncArchive(session, currentFolders)
+        if (foldersSignature(newFolders) !== foldersSignature(currentFolders)) {
           dispatch({ type: 'SET_ARCHIVE_FOLDERS', folders: newFolders })
+        }
+        // Sync subscription status (push local, pull remote)
+        const remoteSub = await syncManager.syncSubscription(session, subStatusRef.current)
+        if (remoteSub.tier !== subStatusRef.current.tier ||
+            remoteSub.isActive !== subStatusRef.current.isActive) {
+          subscriptionManager.setStatusRemote(remoteSub)
         }
       } catch (e) {
         console.warn('sync error', e)
       }
     }, 600)
-  }, [session, syncReady, state.tasks, state.archiveFolders])
+  }, [session, syncReady])
+
+  // Flush the IndexedDB outbox to the Friday server sync relay on mount,
+  // every 30s, and whenever connectivity returns (P4). Pulls remote changes
+  // and applies them to local state via applyRemote callback.
+  const tasksRef = useRef(state.tasks)
+  tasksRef.current = state.tasks
+  const foldersRef = useRef(state.archiveFolders)
+  foldersRef.current = state.archiveFolders
+  const subStatusRef = useRef(subStatus)
+  subStatusRef.current = subStatus
+  useEffect(() => {
+    const applyRemote = (changes: Array<{ entity: string; entityId: string; op: string; payload: unknown; changedAt: string }>) => {
+      const current = tasksRef.current
+      for (const c of changes) {
+        if (c.entity !== 'task') continue
+        const task = c.payload as Task | undefined
+        if (c.op === 'delete') {
+          dispatch({ type: 'DELETE_TASK', id: c.entityId })
+        } else if (c.op === 'create' || c.op === 'update') {
+          if (task) {
+            const exists = current.some((t) => t.id === c.entityId)
+            if (exists) {
+              dispatch({ type: 'UPDATE_TASK', task })
+            } else {
+              dispatch({ type: 'ADD_TASK', task })
+            }
+          }
+        }
+      }
+    }
+    const flush = () => void flushOutbox(applyRemote).catch(() => {})
+    flush()
+    const timer = window.setInterval(flush, 30_000)
+    window.addEventListener('online', flush)
+    return () => {
+      window.clearInterval(timer)
+      window.removeEventListener('online', flush)
+    }
+  }, [])
 
   /**
    * Login reconciliation (F-4): pull the remote first, then decide what wins.
@@ -152,6 +202,11 @@ export function App() {
           dispatch({ type: 'SET_ARCHIVE_FOLDERS', folders: remote.folders })
         } else if (isDemoArchiveSeed(stateRef.current.archiveFolders)) {
           dispatch({ type: 'SET_ARCHIVE_FOLDERS', folders: [] })
+        }
+        // Pull subscription from cloud so premium status carries across devices
+        const remoteSub = await syncManager.pullSubscription(session)
+        if (remoteSub && !cancelled) {
+          subscriptionManager.setStatusRemote(remoteSub)
         }
       } catch (e) {
         console.warn('initial sync failed', e)
@@ -184,11 +239,15 @@ export function App() {
   const addTask = (task: Task) => {
     dispatch({ type: 'ADD_TASK', task })
     dispatch({ type: 'SET_HOME_MODE', mode: 'running' })
+    void enqueue({ entity: 'task', entityId: task.id, op: 'create', payload: task }).catch(() => {})
   }
 
   const addTasksBatch = (tasks: Task[]) => {
     dispatch({ type: 'ADD_TASKS_BATCH', tasks })
     dispatch({ type: 'SET_HOME_MODE', mode: 'running' })
+    for (const task of tasks) {
+      void enqueue({ entity: 'task', entityId: task.id, op: 'create', payload: task }).catch(() => {})
+    }
     showToast(t('tasksAddedAi', { n: tasks.length }))
   }
 
@@ -444,10 +503,14 @@ export function App() {
               onCloseTask={() => dispatch({ type: 'CLOSE_TASK' })}
               onEditTask={() => dispatch({ type: 'SET_HOME_MODE', mode: 'taskEditing' })}
               onCancelEdit={() => dispatch({ type: 'SET_HOME_MODE', mode: 'taskDetail' })}
-              onUpdateTask={(task) => dispatch({ type: 'UPDATE_TASK', task })}
+              onUpdateTask={(task) => {
+                dispatch({ type: 'UPDATE_TASK', task })
+                void enqueue({ entity: 'task', entityId: task.id, op: 'update', payload: task }).catch(() => {})
+              }}
               onDeleteTask={(id) => {
                 recordTombstone('tasks', [id])
                 dispatch({ type: 'DELETE_TASK', id })
+                void enqueue({ entity: 'task', entityId: id, op: 'delete' }).catch(() => {})
                 showToast(t('taskDeleted'), t('undo'), () => {
                   clearTombstones('tasks', [id])
                   dispatch({ type: 'UNDO_DELETE_TASK', id })
